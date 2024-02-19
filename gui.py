@@ -4,9 +4,9 @@ from tkinter import scrolledtext, ttk
 
 from darkdetect import isDark
 from PIL import Image, ImageTk
+from tx_msg import reply
 
-from event import EVENT, WSJTXEvent
-from samples import SAMPLE_MESSAGES
+from event import UPDATE_CALLS
 
 
 class Gui(tk.Tk):
@@ -19,7 +19,6 @@ class Gui(tk.Tk):
         if os.environ.get('DISPLAY', '') == '':
             os.environ.__setitem__('DISPLAY', ':0.0')
         self.protocol('WM_DELETE_WINDOW', self.quit)
-        self.bind(EVENT, self.do_event)
 
         self.setup_theme()
         self.layout()
@@ -35,7 +34,7 @@ class Gui(tk.Tk):
 
     def layout(self):
         self.resizable(False, False)
-        self.title('POTA Helper')
+        self.title('POTA/FT8 Helper')
         self.image = ImageTk.PhotoImage(Image.open(self.LOGO))
         self.iconphoto(False, self.image)
         
@@ -68,25 +67,28 @@ class Gui(tk.Tk):
         self.calls.bind('<Double-1>', self.do_call)
         self.calls.bind('<Return>', self.do_call)
 
-        self.bind('<<UPDATE_CALLS>>', self.update_calls)
+        self.bind(UPDATE_CALLS, self.update_calls)
 
     def do_call(self, _):
         selected_items = self.calls.selection()
-        if selected_items is not None:
-            print (selected_items)
+        msg = self.call_data[self.lookup[selected_items[0]]]
+        # print(msg)
+        self.receive.send(reply(msg))
 
     def update_calls(self, e):
+        self.call_data = e.VirtualEventData
         for item in self.calls.get_children():
             self.calls.delete(item)
-            
-        for i,j in enumerate(e.VirtualEventData):
-            self.calls.insert(parent='', index=i, values=(f"{j['snr']:3}", j['message'],))
+
+        self.lookup = {}
+        for i,j in enumerate(self.call_data):
+            k = self.calls.insert(parent='', index=i, values=(f"{j['snr']:3}", j['message'],))
+            self.lookup[k] = i
             
     def create_tk_vars(self):
         self.do_auto = tk.BooleanVar()
         self.do_auto.set(False)
         
-
     def check_dark(self):
         cur_dark = isDark()
         if cur_dark != self.last_dark:
@@ -94,12 +96,10 @@ class Gui(tk.Tk):
             self.style.theme_use("forest-" + ("dark" if cur_dark else "light"))
         self.after(10, self.check_dark)
 
-    def do_event(self):
-        pass
-
-    def run(self):
+    def run(self, receive):
+        self.receive = receive
         self.mainloop()
         self.destroy()
 
 if __name__ == '__main__':
-    Gui().run()
+    Gui().run(None)
