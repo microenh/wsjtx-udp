@@ -4,6 +4,7 @@ from tkinter import scrolledtext, ttk
 
 from darkdetect import isDark
 from PIL import Image, ImageTk
+from settings import settings
 from tx_msg import reply
 
 from event import UPDATE_CALLS
@@ -20,8 +21,18 @@ class Gui(tk.Tk):
             os.environ.__setitem__('DISPLAY', ':0.0')
         self.protocol('WM_DELETE_WINDOW', self.quit)
 
+        self.setup_variables()
         self.setup_theme()
         self.layout()
+
+    def setup_variables(self):
+        self.park = tk.StringVar()
+        self.park.trace_add('write', self.trace_park)
+        
+    def trace_park(self, _a,_b,_c):
+        self.park.set(x := self.park.get().upper())
+        settings.park = x
+        settings.activator = len(x) > 0
 
     def setup_theme(self):
         self.style = ttk.Style(self)
@@ -39,23 +50,20 @@ class Gui(tk.Tk):
         self.iconphoto(False, self.image)
         
         # self.after_idle(lambda: self.eval('tk::PlaceWindow . center'))
-        self.create_tk_vars()
         
         main_frame = ttk.Frame(self)
         main_frame.pack(expand=True, fill='y')
-        ttk.Label(main_frame, image=self.image).pack(expand=True, pady=10)
+        ttk.Label(main_frame, image=self.image).pack()
         
         bg = ttk.Frame(main_frame)
-        bg.pack(expand=True, fill='y', pady=(0,10))
-        tb = ttk.Frame(bg)
-        tb.pack(expand=True, fill='y')
-        self.calls = ttk.Treeview(tb, height=10, show='tree')
-        self.calls.pack(expand=True, side='left',  padx=(10,0))
-        vsb = ttk.Scrollbar(tb, orient="vertical", command=self.calls.yview)
-        vsb.pack(fill='y', expand=True)
-        auto=ttk.Checkbutton(bg, text='auto-call first', variable=self.do_auto)
-        auto.pack(side='left', fill='x', anchor='w', padx=10)
-
+        bg.pack(padx=10)
+        f = ttk.Frame(bg)
+        f.pack(expand=True, fill='y')
+        self.calls = ttk.Treeview(f, height=10, show='tree')
+        self.calls.pack(side='left',)
+        vsb = ttk.Scrollbar(f, orient="vertical", command=self.calls.yview)
+        vsb.pack(expand=True, fill='y')
+        
 
         self.calls.configure(yscrollcommand=vsb.set)
 
@@ -67,6 +75,12 @@ class Gui(tk.Tk):
         self.calls.bind('<Double-1>', self.do_call)
         self.calls.bind('<Return>', self.do_call)
 
+        f = ttk.Frame(bg)
+        f.pack(fill='x', pady=10)
+        ttk.Label(f, text="Park").pack(side='left')
+        park = ttk.Entry(f, textvariable=self.park)
+        park.pack(fill='x', padx=(10,0))
+        
         self.bind(UPDATE_CALLS, self.update_calls)
 
     def do_call(self, _):
@@ -85,10 +99,6 @@ class Gui(tk.Tk):
             k = self.calls.insert(parent='', index=i, values=(f"{j['snr']:3}", j['message'],))
             self.lookup[k] = i
             
-    def create_tk_vars(self):
-        self.do_auto = tk.BooleanVar()
-        self.do_auto.set(False)
-        
     def check_dark(self):
         cur_dark = isDark()
         if cur_dark != self.last_dark:

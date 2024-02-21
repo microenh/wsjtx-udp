@@ -150,7 +150,7 @@ def log(d, index):
         'tx_freq':  quint64(d, index),
         'mode':     qutf8(d,index),
         'rst_sent': qutf8(d, index),
-        'rst_rcvd': qutf8(d, index),
+        'rst_recv': qutf8(d, index),
         'tx_power': qutf8(d, index),
         'comments': qutf8(d, index),
         'name':     qutf8(d, index),
@@ -159,7 +159,7 @@ def log(d, index):
         'my_call':  qutf8(d, index),
         'my_grid':  qutf8(d, index),
         'ex_sent':  qutf8(d, index),
-        'ex_rcvd':  qutf8(d, index),
+        'ex_recv':  qutf8(d, index),
         'adif_md':  qutf8(d, index),
     }
 
@@ -259,4 +259,13 @@ def parse(d):
     r['raw'] = d
     r.update(decoders[r['msg_id']](d, index))
     return r
-    
+
+
+if __name__ == '__main__':
+    from sample_data import SAMPLE_DATA
+    msgs = {}
+    for i in SAMPLE_DATA:
+        p = parse(i)
+        msgs[m] = msgs.get((m:=p['msg_id']),0) + 1
+        #print(parse(i))
+    print(msgs)
