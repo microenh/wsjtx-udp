@@ -57,7 +57,7 @@ class Receive:
         call = []
         for i in decodes:
             dx_call = None
-            msg_parse = i['message'].split(' ')
+            msg_parse = i.message.split(' ')
             if msg_parse[0] == 'CQ':
                 if msg_parse[1] == 'POTA':
                     dx_call = msg_parse[2]
@@ -69,7 +69,7 @@ class Receive:
                 dx_call = msg_parse[0]
                 append = call
             else:
-                # print(i['message'], msg_parse)
+                # print(i.message, msg_parse)
                 continue
             if dx_call is not None:    
                 if settings.activator:
@@ -80,9 +80,9 @@ class Receive:
                 if ex[0] == 1:
                     continue
                 append.append(i)                   
-        pota.sort(key=lambda a: a['snr'], reverse=True)
-        call.sort(key=lambda a: a['snr'], reverse=True)
-        cq.sort(key=lambda a: a['snr'], reverse=True)
+        pota.sort(key=lambda a: a.snr, reverse=True)
+        call.sort(key=lambda a: a.snr, reverse=True)
+        cq.sort(key=lambda a: a.snr, reverse=True)
         Event.VirtualEventData = pota + call + cq
         self.gui.event_generate(UPDATE_CALLS, when='tail')
         
@@ -99,10 +99,10 @@ class Receive:
                 d = parse(data)
             except TimeoutError:
                 continue
-            msg_id = d['msg_id']
+            msg_id = d.msg_id
             if self.syncing:
                 if msg_id == 2:
-                    t = d['time']
+                    t = d.time
                     if old_time is None:
                         old_time = t
                     else:
@@ -114,7 +114,7 @@ class Receive:
             match msg_id:
                 case 1:
                     settings.update_status(d)
-                    if not d['decoding']:
+                    if not d.decoding:
                         cycles += 1
                         if cycles == 3:
                             cycles = 0

@@ -92,13 +92,13 @@ def clear(window=0):
 def reply(msg, modifiers=0):
     d = []
     header(d, 4)
-    quint32(d, msg['time'])
-    qint32(d, msg['snr'])
-    qdouble(d, msg['delta_time'])
-    quint32(d, msg['delta_freq'])
-    qutf8(d, msg['mode'])
-    qutf8(d, msg['message'])
-    qbool(d, msg['low_conf'])
+    quint32(d, msg.time)
+    qint32(d, msg.snr)
+    qdouble(d, msg.delta_time)
+    quint32(d, msg.delta_freq)
+    qutf8(d, msg.mode)
+    qutf8(d, msg.message)
+    qbool(d, msg.low_conf)
     quint8(d, modifiers)
     return b''.join(d)
 

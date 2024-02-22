@@ -1,74 +1,40 @@
-from struct import unpack_from
+from struct import unpack_from, calcsize
 from datetime import datetime, timedelta, timezone
 
-def qbool(d, index):
-    r = unpack_from('?', d, index[0])[0]
-    index[0] += 1
+def parse_base(fmt, d, index):
+    r = unpack_from(fmt, d, index[0])[0]
+    index[0] += calcsize(fmt)
     return r
 
-def qint8(d, index):
-    r = unpack_from('b', d, index[0])[0]
-    index[0] += 1
-    return r
-
-def quint8(d, index):
-    r = unpack_from('B', d, index[0])[0]
-    index[0] += 1
-    return r
-
-def qint32(d, index):
-    r = unpack_from('>i', d, index[0])[0]
-    index[0] += 4
-    return r
-
-def quint32(d, index):
-    r = unpack_from('>I', d, index[0])[0]
-    index[0] += 4
-    return r
-
-##def qint64(d, index):
-##    r = unpack_from('>q', d, index[0])[0]
-##    index[0] += 8
-##    return r
-
-def quint64(d, index):
-    r = unpack_from('>Q', d, index[0])[0]
-    index[0] += 8
-    return r
-
-def qdouble(d, index):
-    r = unpack_from('>d', d, index[0])[0]
-    index[0] += 8
-    return r
-
-def qdatetime(d, index):
-    jday = quint64(d, index)
-    msec = qint32(d, index)
-    timespec = qint8(d, index)
-    if timespec == 2:
-        offset = qint32(d, index)
-    else:
-        offset = 0
+def to_datetime(jday, msec, timespec, offset):
     dt = (datetime.fromordinal(jday - 1721425) + timedelta(seconds=msec/1000))
     match timespec:
         case 0:
             dt = dt.astimezone()
         case 1|2:
-            dt = dt.replace(tzinfo=timezone(timedelta(seconds=offset)))
-    
+            dt = dt.replace(tzinfo=timezone(timedelta(seconds=offset)))    
     return dt
-    
-def qutf8(d, index):
-    s_len = quint32(d, index)
-    if s_len == 0xffffffff:
-        s_len = 0
-    if s_len == 0:
-        return ''
-    else:
-        old_index = index[0]
-        index[0] += s_len
-        return d[old_index:old_index+s_len].decode()
 
+qbool = lambda d, index: parse_base('?', d, index)
+qint8 = lambda d, index: parse_base('b', d, index)
+quint8 = lambda d, index: parse_base('B', d, index)
+qint32 = lambda d, index: parse_base('>i', d, index)
+quint32 = lambda d, index: parse_base('>I', d, index)
+qint64 = lambda d, index: parse_base('>q', d, index)
+quint64 = lambda d, index: parse_base('>Q', d, index)
+qdouble = lambda d, index: parse_base('>d', d, index)
+
+def qdatetime(d, index):
+    return(quint64(d, index),
+           qint32(d, index),
+           (ts := qint8(d, index)),
+           (qint32(d, index) if ts==2 else 0))
+
+def qutf8(d, index):
+    i = 0 if (m:=quint32(d, index)) == 0xffffffff else m
+    index[0] = (o:=index[0]) + i
+    return '' if i == 0 else d[o:index[0]].decode()
+                 
 def header(d, index):
     return {
         'magic':  quint32(d, index),
@@ -180,9 +146,6 @@ def free_text(d, index):
         'send' : qbool(d, index),
     }
 
-
-
-
 def wspr(d, index):
     return {
         'new':        qbool(d, index),
@@ -220,7 +183,6 @@ def switch_conf(d, index):
         'conf_name': qutf8(d, index)
     }
 
-
 def configure(d, index):
     return{
         'mode': qutf8(d, index),
@@ -254,18 +216,17 @@ decoders = (
 )
 
 def parse(d):
+    class Data:
+        def __init__(self, a):
+            self.__dict__ = a
     index = [0]
     r = header(d, index)
     r['raw'] = d
     r.update(decoders[r['msg_id']](d, index))
-    return r
+    return Data(r)
 
 
 if __name__ == '__main__':
-    from sample_data import SAMPLE_DATA
-    msgs = {}
-    for i in SAMPLE_DATA:
-        p = parse(i)
-        msgs[m] = msgs.get((m:=p['msg_id']),0) + 1
-        #print(parse(i))
-    print(msgs)
+    from sample_data.small_sample import SAMPLE_DATA
+    for i in SAMPLE_DATA.values():
+        print(parse(i).msg_id)

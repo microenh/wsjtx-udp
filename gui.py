@@ -96,7 +96,7 @@ class Gui(tk.Tk):
 
         self.lookup = {}
         for i,j in enumerate(self.call_data):
-            k = self.calls.insert(parent='', index=i, values=(f"{j['snr']:3}", j['message'],))
+            k = self.calls.insert(parent='', index=i, values=(f"{j.snr:3}", j.message,))
             self.lookup[k] = i
             
     def check_dark(self):

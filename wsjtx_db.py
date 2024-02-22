@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from datafolder import data_folder
 from utility import lon_lat
 from settings import settings
+from rx_msg import to_datetime
 
 wsjtx_db = None
 
@@ -72,7 +73,7 @@ class WSJTXDB:
         with sqlite3.connect(self.dbn) as con:
             return con.execute(QUERY, (
                 dx_call,
-                d['mode'],
+                d.mode,
                 settings.ordinal,
                 settings.band,
                 settings.park_name.get(),
@@ -123,26 +124,26 @@ class WSJTXDB:
         
         with sqlite3.connect(self.dbn) as con:
             con.execute(QUERY, (
-                d['time_off'].timestamp(),
-                d['dx_call'],
-                d['dx_grid'],
-                d['tx_freq'],
-                d['mode'],
-                d['rst_sent'],
-                d['rst_recv'],
-                d['tx_power'],
-                d['comments'],
-                d['name'],
-                d['time_on'].timestamp(),
-                d['op_call'],
-                d['my_call'],
-                d['my_grid'],
-                d['ex_sent'],
-                d['ex_recv'],
-                d['adif_md'],
+                to_datetime(*d.time_off).timestamp(),
+                d.dx_call,
+                d.dx_grid,
+                d.tx_freq,
+                d.mode,
+                d.rst_sent,
+                d.rst_recv,
+                d.tx_power,
+                d.comments,
+                d.name,
+                to_datetime(*d.time_on).timestamp(),
+                d.op_call,
+                d.my_call,
+                d.my_grid,
+                d.ex_sent,
+                d.ex_recv,
+                d.adif_md,
                 settings.ordinal,
                 settings.band,
-                settings.park.get(),
+                settings.park,
                 settings.shift,
             ))
         
