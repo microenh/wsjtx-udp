@@ -5,6 +5,8 @@ class Settings:
     def __init__(self):
         self.activator = False
         self.park = ''
+        self.mode = None
+        self.syncing = True
 
     def update_status(self, d):
         self.band = d.dial_freq // 1_000_000
@@ -13,7 +15,9 @@ class Settings:
         self.de_call = d.de_call.upper()
         self.grid = d.de_grid
         self.shift = calc_shift(self.grid, n.hour)
-        self.mode = d.mode
+        if d.mode != self.mode:
+            self.mode = d.mode
+            self.syncing = True
         
           
 settings = Settings()

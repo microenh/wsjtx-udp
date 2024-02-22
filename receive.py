@@ -26,7 +26,6 @@ class Receive:
         self.sock.settimeout(1.0)
         self.thread = Thread(target=self.client)
         self.running = True
-        self.syncing = True
         host = HOST
         if int(HOST.split('.')[0]) in range(224,240):
             # multicast
@@ -47,9 +46,6 @@ class Receive:
         self.thread.join()
         if CAPTURE_DATA is not None:
             self.data_out.close()
-
-    def resync(self):
-        self.syncing = True
 
     def process_decodes(self, decodes):
         pota = []
@@ -100,14 +96,14 @@ class Receive:
             except TimeoutError:
                 continue
             msg_id = d.msg_id
-            if self.syncing:
+            if settings.syncing:
                 if msg_id == 2:
                     t = d.time
                     if old_time is None:
                         old_time = t
                     else:
                         if d != old_time:
-                            self.syncing = False
+                            settings.syncing = False
                             cycles = 0
                             r = [d]
                     continue
@@ -116,7 +112,7 @@ class Receive:
                     settings.update_status(d)
                     if not d.decoding:
                         cycles += 1
-                        if cycles == 3:
+                        if cycles == 3 or settings.mode == 'FT4':
                             cycles = 0
                             self.process_decodes(r)
                             r = []

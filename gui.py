@@ -45,7 +45,7 @@ class Gui(tk.Tk):
 
     def layout(self):
         self.resizable(False, False)
-        self.title('POTA/FT8 Helper')
+        self.title('POTA-FT8/FT4 Helper')
         self.image = ImageTk.PhotoImage(Image.open(self.LOGO))
         self.iconphoto(False, self.image)
         
