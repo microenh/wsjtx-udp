@@ -5,9 +5,10 @@ from threading import Thread
 from tkinter import Event
 
 from rx_msg import parse
-from event import UPDATE_CALLS
-from wsjtx_db import get_wsjtx_db
+from event import UPDATE_CALLS, UPDATE_STATUS
+from wsjtx_db import wsjtx_db
 from settings import settings
+from tx_msg import heartbeat
 
 WSJTX_PORT = 2237
 HOST = '224.0.0.1'
@@ -19,12 +20,12 @@ class Receive:
     def __init__(self, gui):
         if CAPTURE_DATA is not None:
             self.data_out = open(CAPTURE_DATA, 'w')
-        self.wsjtx_db = get_wsjtx_db()
         self.gui = gui
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.settimeout(1.0)
         self.thread = Thread(target=self.client)
+        self.addr = None
         self.running = True
         host = HOST
         if int(HOST.split('.')[0]) in range(224,240):
@@ -36,7 +37,8 @@ class Receive:
 
 
     def send(self, data):
-        self.sock.sendto(data, self.addr)
+        if self.addr is not None:
+            self.sock.sendto(data, self.addr)
 
     def start(self):
         self.thread.start()
@@ -69,9 +71,9 @@ class Receive:
                 continue
             if dx_call is not None:    
                 if settings.activator:
-                    ex = self.wsjtx_db.exists_activator(dx_call, i)
+                    ex = wsjtx_db.exists_activator(dx_call, i)
                 else:
-                    ex = self.wsjtx_db.exists_hunter(dx_call, i)
+                    ex = wsjtx_db.exists_hunter(dx_call, i)
                 # print(ex)
                 if ex[0] == 1:
                     continue
@@ -108,18 +110,28 @@ class Receive:
                             r = [d]
                     continue
             match msg_id:
-                case 1:
+                case 0:  # HEARTBEAT
+                    self.send(heartbeat())
+                    # print('heartbeat sent')
+                case 1:  # STATUS
+                    Event.VirtualEventData = (d.tx_msg if d.transmitting else 'RX')
+                    self.gui.event_generate(UPDATE_STATUS, when='tail')
+
                     settings.update_status(d)
                     if not d.decoding:
+                        # print('done decoding')
                         cycles += 1
                         if cycles == 3 or settings.mode == 'FT4':
                             cycles = 0
                             self.process_decodes(r)
                             r = []
-                case 2:
+                case 2:  # DECODE 
                     r.append(d)
-                case 5:
-                    self.wsjtx_db.add(d)
+                case 5:  # LOG
+                    wsjtx_db.add(d)
+                case 12:  # ADIF
+                    wsjtx_db.add_log(d.text)
+                    
 
 
 if __name__ == '__main__':

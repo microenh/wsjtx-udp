@@ -5,9 +5,9 @@ from tkinter import scrolledtext, ttk
 from darkdetect import isDark
 from PIL import Image, ImageTk
 from settings import settings
-from tx_msg import reply
+from tx_msg import reply, location, free_text
 
-from event import UPDATE_CALLS
+from event import UPDATE_CALLS, UPDATE_STATUS
 
 
 class Gui(tk.Tk):
@@ -20,14 +20,17 @@ class Gui(tk.Tk):
         if os.environ.get('DISPLAY', '') == '':
             os.environ.__setitem__('DISPLAY', ':0.0')
         self.protocol('WM_DELETE_WINDOW', self.quit)
-
+        self.lookup = {}
+        self.call_data = []
         self.setup_variables()
         self.setup_theme()
         self.layout()
 
     def setup_variables(self):
         self.park = tk.StringVar()
+        self.location = tk.StringVar()
         self.park.trace_add('write', self.trace_park)
+        self.rx_tx = tk.StringVar()
         
     def trace_park(self, _a,_b,_c):
         self.park.set(x := self.park.get().upper())
@@ -57,6 +60,11 @@ class Gui(tk.Tk):
         
         bg = ttk.Frame(main_frame)
         bg.pack(padx=10)
+
+        f = ttk.Frame(bg)
+        f.pack(expand=True, fill='x')
+        ttk.Label(f, textvariable=self.rx_tx).pack(fill='x', anchor='center', pady=(0,10))
+        
         f = ttk.Frame(bg)
         f.pack(expand=True, fill='y')
         self.calls = ttk.Treeview(f, height=10, show='tree')
@@ -81,13 +89,31 @@ class Gui(tk.Tk):
         park = ttk.Entry(f, textvariable=self.park)
         park.pack(fill='x', padx=(10,0))
         
+        f = ttk.Frame(bg)
+        f.pack(fill='x', pady=10)
+        ttk.Label(f, text="My Grid").pack(side='left')
+        park = ttk.Entry(f, textvariable=self.location)
+        park.pack(fill='x', padx=(10,0))
+        park.bind('<Return>', self.update_grid)
+        
         self.bind(UPDATE_CALLS, self.update_calls)
+        self.bind(UPDATE_STATUS, self.update_status)
 
+    def update_status(self, e):
+        self.rx_tx.set(e.VirtualEventData)
+
+    def update_grid(self, _):
+        self.receive.send(location(self.location.get().upper()))
+        # self.receive.send(free_text(self.location.get().upper(), True))
+ 
     def do_call(self, _):
-        selected_items = self.calls.selection()
-        msg = self.call_data[self.lookup[selected_items[0]]]
-        # print(msg)
-        self.receive.send(reply(msg))
+        sel = self.calls.selection()
+        if len(sel) > 0:
+            index = self.lookup.get(sel[0])
+            if index is not None:
+                msg = self.call_data[index]
+                # print(msg)
+                self.receive.send(reply(msg))
 
     def update_calls(self, e):
         self.call_data = e.VirtualEventData

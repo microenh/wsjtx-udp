@@ -8,11 +8,12 @@ from utility import lon_lat
 from settings import settings
 from rx_msg import to_datetime
 
-wsjtx_db = None
+DBN = os.path.join(df:=data_folder(), 'wsjtxDB.sqlite')
+ADIFN = os.path.join(df, 'wsjtx.adi')
+
 
 class WSJTXDB:
     def __init__(self):
-        FILENAME = 'wsjtxDB.sqlite'
         CREATE_TABLES = ("""
             create table if not exists qsos (
                 time_off int,
@@ -54,9 +55,8 @@ class WSJTXDB:
                 band);
             """,
         )
-        self.dbn = os.path.join(data_folder(), FILENAME)
 
-        with sqlite3.connect(self.dbn) as con:
+        with sqlite3.connect(DBN) as con:
             for i in CREATE_TABLES:
                 con.execute(i)
 
@@ -70,7 +70,7 @@ class WSJTXDB:
                 and park=?
                 and shift=?
             )"""
-        with sqlite3.connect(self.dbn) as con:
+        with sqlite3.connect(DBN) as con:
             return con.execute(QUERY, (
                 dx_call,
                 d.mode,
@@ -89,7 +89,7 @@ class WSJTXDB:
                 and band=?
                 and park=''
             )"""
-        with sqlite3.connect(self.dbn) as con:
+        with sqlite3.connect(DBN) as con:
             return con.execute(QUERY, (
                 dx_call,
                 settings.mode,
@@ -122,7 +122,7 @@ class WSJTXDB:
                 shift
         ) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"""
         
-        with sqlite3.connect(self.dbn) as con:
+        with sqlite3.connect(DBN) as con:
             con.execute(QUERY, (
                 to_datetime(*d.time_off).timestamp(),
                 d.dx_call,
@@ -146,10 +146,13 @@ class WSJTXDB:
                 settings.park,
                 settings.shift,
             ))
+
+    def add_log(self, text):
+        exists = os.path.isfile(ADIFN)
+        with open(ADIFN, 'a') as f:
+            if exists:
+                text = text.split('<EOH>\n')[1]
+            f.write(text)
         
-def get_wsjtx_db():
-    global wsjtx_db
-    if wsjtx_db is None:
-        wsjtx_db = WSJTXDB()
-    return wsjtx_db
+wsjtx_db = WSJTXDB()
 

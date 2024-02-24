@@ -13,9 +13,8 @@ def to_datetime(jday, msec, timespec, offset):
 def parse(d):
 
     def parse_base(a, fmt):
-        r = unpack_from(fmt, a.raw, a._index)[0]
-        a._index += calcsize(fmt)
-        return r
+        a._index = (o:=a._index) + calcsize(fmt)
+        return unpack_from(fmt, a.raw, o)[0]
 
     qbool = lambda a: parse_base(a, '?')
     qint8 = lambda a: parse_base(a, 'b')
@@ -153,7 +152,7 @@ def parse(d):
         ('power',      qint32),
         ('off_air',    qbool)),
 
-        #LOCATION
+        #LOCATION -- note AutoGrid must be checked in WSJT-X 
         (('location', qutf8),),
         
         #ADIF
@@ -198,4 +197,5 @@ def parse(d):
 
 if __name__ == '__main__':
     from sample_data.small_sample import SAMPLE_DATA
-    a = [parse(i) for i in SAMPLE_DATA.values()]
+    # a = [parse(i) for i in SAMPLE_DATA.values()]
+    a = parse(SAMPLE_DATA[12])
