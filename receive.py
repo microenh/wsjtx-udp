@@ -11,8 +11,6 @@ from settings import settings
 from tx_msg import heartbeat
 
 class Receive:
-    lock = Lock()
-
     def __init__(self, gui):
         if settings.CAPTURE_DATA is not None:
             self.data_out = open(settings.CAPTURE_DATA, 'w')
@@ -40,15 +38,15 @@ class Receive:
         self.thread.start()
         
     def stop(self):
-        self.running = False
         self.thread.join()
         if settings.CAPTURE_DATA is not None:
             self.data_out.close()
 
     def notify_gui(self, id_, data):
-        with self.lock:
-            notify_queue.put((id_, data))
-            self.gui.event_generate(NOTIFY_GUI, when='tail')
+        if settings.running:
+            with lock:
+                notify_queue.put((id_, data))
+                self.gui.event_generate(NOTIFY_GUI, when='tail')
         
 
     def process_decodes(self, decodes):
@@ -87,7 +85,7 @@ class Receive:
         
     def client(self):
         r = []
-        while self.running:
+        while settings.running:
             try:
                 data, self.addr = self.sock.recvfrom(1024)
                 if settings.CAPTURE_DATA is not None:

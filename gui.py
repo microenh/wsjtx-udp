@@ -29,8 +29,8 @@ class Gui(tk.Tk):
         self.layout()
 
     def setup_variables(self):
-        self.location = tk.StringVar()
         self.rx_tx = tk.StringVar()
+        self.gps = tk.StringVar()
         self.update_rx_tx(False)
     
     def setup_theme(self):
@@ -71,12 +71,11 @@ class Gui(tk.Tk):
         self.lookup = {self.calls_pota: {}, self.calls_me: {}, self.calls_cq: {}}
         self.call_data = {self.calls_pota: [], self.calls_me: [], self.calls_cq: []}
 
-##        f = ttk.Frame(bg)
-##        f.pack(fill='x', pady=10)
-##        ttk.Label(f, text="My Grid").pack(side='left')
-##        park = ttk.Entry(f, textvariable=self.location)
-##        park.pack(fill='x', padx=(10,0))
-##        park.bind('<Return>', self.update_grid)
+        f = ttk.Frame(bg)
+        f.pack(fill='x', pady=10)
+        ttk.Label(f, text="GPS").pack(side='left')
+        park = ttk.Label(f, textvariable=self.gps)
+        park.pack(fill='x', padx=(10,0))
 
 
     def abort_tx(self, _):
@@ -110,10 +109,14 @@ class Gui(tk.Tk):
             try:
                 id_, d = notify_queue.get_nowait()
                 match id_:
+                    case NotifyGUI.QUIT:
+                        self.quit()
                     case NotifyGUI.CALLS:
                         self.update_calls(d)
                     case NotifyGUI.STATUS:
                         self.update_rx_tx(d.transmitting, d.tx_msg)
+                    case NotifyGUI.GPGGA:
+                        self.gps.set(f"TIME: {d['time']} GRID: {d['grid']} FIX: {d['fix']} SATS: {d['sats']}")
             except Empty:
                 break
             
@@ -121,11 +124,6 @@ class Gui(tk.Tk):
     def update_rx_tx(self, tx, msg=''):
         self.rx_tx.set('TX: ' + msg.strip() if tx else 'RX')
 
-    def update_grid(self, _):
-        # self.receive.send(location(self.location.get().upper()))
-        # self.receive.send(free_text(self.location.get().upper(), True))
-        # self.rx_tx.set(self.location.get())
-        ...
  
     def do_call(self, _, entry):
         sel = entry.selection()
@@ -169,6 +167,6 @@ class Gui(tk.Tk):
         self.destroy()
 
 if __name__ == '__main__':
-##    Gui().run(None)
-    from main import main
-    main()
+    Gui().run(None)
+##    from main import main
+##    main()
