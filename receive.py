@@ -1,25 +1,21 @@
 #! C:\Users\mark\Developer\Python\wsjtx-udp\.venv\scripts\pythonw.exe
 import socket
 import struct
-from threading import Thread
+from threading import Thread, Lock
 from tkinter import Event
 
 from rx_msg import parse
-from event import UPDATE_CALLS, UPDATE_STATUS
+from event import *
 from wsjtx_db import wsjtx_db
 from settings import settings
 from tx_msg import heartbeat
 
-WSJTX_PORT = 2237
-HOST = '224.0.0.1'
-
-# set to None (no capture) or filename
-CAPTURE_DATA = None
-
 class Receive:
+    lock = Lock()
+
     def __init__(self, gui):
-        if CAPTURE_DATA is not None:
-            self.data_out = open(CAPTURE_DATA, 'w')
+        if settings.CAPTURE_DATA is not None:
+            self.data_out = open(settings.CAPTURE_DATA, 'w')
         self.gui = gui
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -27,13 +23,13 @@ class Receive:
         self.thread = Thread(target=self.client)
         self.addr = None
         self.running = True
-        host = HOST
-        if int(HOST.split('.')[0]) in range(224,240):
+        host = settings.HOST
+        if int(settings.HOST.split('.')[0]) in range(224,240):
             # multicast
-            mreq = struct.pack("4sl", socket.inet_aton(HOST), socket.INADDR_ANY)
+            mreq = struct.pack("4sl", socket.inet_aton(settings.HOST), socket.INADDR_ANY)
             self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
             host = ''
-        self.sock.bind((host, WSJTX_PORT))
+        self.sock.bind((host, settings.WSJTX_PORT))
 
 
     def send(self, data):
@@ -46,8 +42,14 @@ class Receive:
     def stop(self):
         self.running = False
         self.thread.join()
-        if CAPTURE_DATA is not None:
+        if settings.CAPTURE_DATA is not None:
             self.data_out.close()
+
+    def notify_gui(self, id_, data):
+        with self.lock:
+            notify_queue.put((id_, data))
+            self.gui.event_generate(NOTIFY_GUI, when='tail')
+        
 
     def process_decodes(self, decodes):
         pota = []
@@ -81,50 +83,30 @@ class Receive:
         pota.sort(key=lambda a: a.snr, reverse=True)
         call.sort(key=lambda a: a.snr, reverse=True)
         cq.sort(key=lambda a: a.snr, reverse=True)
-        Event.VirtualEventData = pota + call + cq
-        self.gui.event_generate(UPDATE_CALLS, when='tail')
+        self.notify_gui(NotifyGUI.CALLS, (pota, call, cq))
         
     def client(self):
-        old_time = None
         r = []
-        cycles = 0
-        ct = 0
         while self.running:
             try:
                 data, self.addr = self.sock.recvfrom(1024)
-                if CAPTURE_DATA is not None:
+                if settings.CAPTURE_DATA is not None:
                     print(f'{data},', file=self.data_out)
                 d = parse(data)
             except TimeoutError:
                 continue
             msg_id = d.msg_id
-            if settings.syncing:
-                if msg_id == 2:
-                    t = d.time
-                    if old_time is None:
-                        old_time = t
-                    else:
-                        if d != old_time:
-                            settings.syncing = False
-                            cycles = 0
-                            r = [d]
-                    continue
             match msg_id:
                 case 0:  # HEARTBEAT
                     self.send(heartbeat())
                     # print('heartbeat sent')
                 case 1:  # STATUS
-                    Event.VirtualEventData = (d.tx_msg if d.transmitting else 'RX')
-                    self.gui.event_generate(UPDATE_STATUS, when='tail')
-
                     settings.update_status(d)
+                    self.notify_gui(NotifyGUI.STATUS, d)
                     if not d.decoding:
                         # print('done decoding')
-                        cycles += 1
-                        if cycles == 3 or settings.mode == 'FT4':
-                            cycles = 0
-                            self.process_decodes(r)
-                            r = []
+                        self.process_decodes(r)
+                        r = []
                 case 2:  # DECODE 
                     r.append(d)
                 case 5:  # LOG

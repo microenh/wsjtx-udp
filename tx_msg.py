@@ -112,7 +112,7 @@ def replay():
     header(d, 7)
     return b''.join(d)
 
-def halt_tx(auto_tx_only):
+def halt_tx(auto_tx_only=False):
     d = []
     header(d, 8)
     qbool(d, auto_tx_only)

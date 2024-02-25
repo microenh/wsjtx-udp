@@ -2,11 +2,15 @@ from datetime import datetime, timezone
 from utility import calc_shift
 
 class Settings:
+    WSJTX_PORT = 2237
+    HOST = '224.0.0.1'    
+    CAPTURE_DATA = None  # set to None (no capture) or filename
+    DB_NAME = 'wsjtxDB.sqlite'
+    ADI_NAME = 'wsjtx.adi'
+    PARK = ''
+    
     def __init__(self):
-        self.activator = False
-        self.park = ''
         self.mode = None
-        self.syncing = True
 
     def update_status(self, d):
         self.band = d.dial_freq // 1_000_000
@@ -17,7 +21,10 @@ class Settings:
         self.shift = calc_shift(self.grid, n.hour)
         if d.mode != self.mode:
             self.mode = d.mode
-            self.syncing = True
+
+    @property
+    def activator(self):
+        return len(self.PARK) > 0
         
           
 settings = Settings()

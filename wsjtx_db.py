@@ -8,8 +8,8 @@ from utility import lon_lat
 from settings import settings
 from rx_msg import to_datetime
 
-DBN = os.path.join(df:=data_folder(), 'wsjtxDB.sqlite')
-ADIFN = os.path.join(df, 'wsjtx.adi')
+DBN = os.path.join(df:=data_folder(), settings.DB_NAME)
+ADIFN = os.path.join(df, settings.ADI_NAME)
 
 
 class WSJTXDB:
@@ -143,7 +143,7 @@ class WSJTXDB:
                 d.adif_md,
                 settings.ordinal,
                 settings.band,
-                settings.park,
+                settings.PARK,
                 settings.shift,
             ))
 
