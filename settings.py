@@ -12,7 +12,6 @@ class Settings:
     
     def __init__(self):
         self.mode = None
-        self.running = True
 
     def update_status(self, d):
         self.band = d.dial_freq // 1_000_000

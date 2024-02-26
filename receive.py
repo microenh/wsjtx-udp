@@ -5,22 +5,20 @@ from threading import Thread, Lock
 from tkinter import Event
 
 from rx_msg import parse
-from event import *
+from event import manager, NotifyGUI
 from wsjtx_db import wsjtx_db
 from settings import settings
 from tx_msg import heartbeat
 
 class Receive:
-    def __init__(self, gui):
+    def __init__(self):
         if settings.CAPTURE_DATA is not None:
             self.data_out = open(settings.CAPTURE_DATA, 'w')
-        self.gui = gui
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.settimeout(1.0)
         self.thread = Thread(target=self.client)
         self.addr = None
-        self.running = True
         host = settings.HOST
         if int(settings.HOST.split('.')[0]) in range(224,240):
             # multicast
@@ -30,24 +28,19 @@ class Receive:
         self.sock.bind((host, settings.WSJTX_PORT))
 
 
+    def start(self):
+        self.thread.start()
+
     def send(self, data):
         if self.addr is not None:
             self.sock.sendto(data, self.addr)
 
-    def start(self):
-        self.thread.start()
+        
         
     def stop(self):
         self.thread.join()
         if settings.CAPTURE_DATA is not None:
             self.data_out.close()
-
-    def notify_gui(self, id_, data):
-        if settings.running:
-            with lock:
-                notify_queue.put((id_, data))
-                self.gui.event_generate(NOTIFY_GUI, when='tail')
-        
 
     def process_decodes(self, decodes):
         pota = []
@@ -81,11 +74,11 @@ class Receive:
         pota.sort(key=lambda a: a.snr, reverse=True)
         call.sort(key=lambda a: a.snr, reverse=True)
         cq.sort(key=lambda a: a.snr, reverse=True)
-        self.notify_gui(NotifyGUI.CALLS, (pota, call, cq))
+        manager.send(NotifyGUI.CALLS, (pota, call, cq))
         
     def client(self):
         r = []
-        while settings.running:
+        while manager.running:
             try:
                 data, self.addr = self.sock.recvfrom(1024)
                 if settings.CAPTURE_DATA is not None:
@@ -100,7 +93,7 @@ class Receive:
                     # print('heartbeat sent')
                 case 1:  # STATUS
                     settings.update_status(d)
-                    self.notify_gui(NotifyGUI.STATUS, d)
+                    manager.send(NotifyGUI.STATUS, d)
                     if not d.decoding:
                         # print('done decoding')
                         self.process_decodes(r)

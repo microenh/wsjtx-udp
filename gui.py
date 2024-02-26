@@ -7,20 +7,24 @@ from PIL import Image, ImageTk
 from settings import settings
 from tx_msg import reply, location, free_text, halt_tx
 
-from event import *
+from event import manager, NotifyGUI
 
+
+NOTIFY_GUI = '<<GUI>>'
 
 class Gui(tk.Tk):
     """Main class more"""
     LOGO = os.path.join(os.path.dirname(__file__), "Logo.png")
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, receive):
+        super().__init__()
+        self.receive = receive
         self.screenName = ':0.0'
         if os.environ.get('DISPLAY', '') == '':
             os.environ.__setitem__('DISPLAY', ':0.0')
         self.protocol('WM_DELETE_WINDOW', self.quit)
         self.bind(NOTIFY_GUI, self.do_notify)
+        manager.event_generate = lambda: self.event_generate(NOTIFY_GUI, when="tail")
 
         # self.after_idle(lambda: self.eval('tk::PlaceWindow . center'))
         self.last_decode = None
@@ -106,19 +110,19 @@ class Gui(tk.Tk):
 
     def do_notify(self, _):
         while True:
-            try:
-                id_, d = notify_queue.get_nowait()
-                match id_:
-                    case NotifyGUI.QUIT:
-                        self.quit()
-                    case NotifyGUI.CALLS:
-                        self.update_calls(d)
-                    case NotifyGUI.STATUS:
-                        self.update_rx_tx(d.transmitting, d.tx_msg)
-                    case NotifyGUI.GPGGA:
-                        self.gps.set(f"TIME: {d['time']} GRID: {d['grid']} FIX: {d['fix']} SATS: {d['sats']}")
-            except Empty:
+            data = manager.get_data()
+            if data is None:
                 break
+            id_, d = data
+            match id_:
+                case NotifyGUI.QUIT:
+                    self.quit()
+                case NotifyGUI.CALLS:
+                    self.update_calls(d)
+                case NotifyGUI.STATUS:
+                    self.update_rx_tx(d.transmitting, d.tx_msg)
+                case NotifyGUI.GPGGA:
+                    self.gps.set(f"TIME: {d['time']} GRID: {d['grid']} FIX: {d['fix']} SATS: {d['sats']}")
             
 
     def update_rx_tx(self, tx, msg=''):
@@ -161,12 +165,12 @@ class Gui(tk.Tk):
             self.style.theme_use("forest-" + ("dark" if cur_dark else "light"))
         self.after(10, self.check_dark)
 
-    def run(self, receive):
-        self.receive = receive
+    def start(self):
         self.mainloop()
+        manager.running = False
         self.destroy()
 
 if __name__ == '__main__':
-    Gui().run(None)
+    Gui().start(None)
 ##    from main import main
 ##    main()

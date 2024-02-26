@@ -1,17 +1,16 @@
-#! C:\Users\mark\Developer\Python\wsjtx-udp\.venv\scripts\pythonw.exe
+#! .venv\scripts\pythonw.exe
 from gui import Gui
 from receive import Receive
 from gps import GPS
-from settings import settings
 
 def main():
-    gui = Gui()
-    receive = Receive(gui)
-    gps = GPS(gui)
+    receive = Receive()
+    gps = GPS()
+    
     receive.start()
     gps.start()
-    gui.run(receive)
-    settings.running = False
+    Gui(receive).start()
+    
     receive.stop()
     gps.stop()
         
