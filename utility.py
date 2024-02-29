@@ -1,4 +1,5 @@
-from datetime import time
+from datetime import datetime, time, timezone
+from win32api import SetSystemTime
 
 DIVISIONS = (
     ( 1, ord('A')),
@@ -99,16 +100,30 @@ def calc_shift(grid_square, hour):
         _last_grid_square = 'l'
     return _last_grid_square
 
+def settimefromgps(utctime):
+    utctime = float(utctime)
+    h = int(utctime//10_000)
+    utctime -= h * 10_000
+    m = int(utctime//100)
+    utctime -= m * 100
+    s = int(utctime)
+    utctime -= s
+    msec = int(utctime * 1_000)
+    d = datetime.now(timezone.utc)
+    SetSystemTime(d.year, d.month, d.weekday(), d.day, h, m, s, msec)
+
+
 if __name__ == '__main__':
-    for i in (
-        ('PM85kh', 'rrrrrrrrrlllllllleeeeeer'),  # Japan
-        ('DM07kp', 'rrlllllllleeeeeerrrrrrrr'),  # California     
-        ('EM89hu', 'lllllllleeeeeerrrrrrrrrr'),  # Ohio
-        ('IO91wm', 'lleeeeeerrrrrrrrrrllllll'),  # UK -longitude
-        ('JO01ir', 'lleeeeeerrrrrrrrrrllllll'),  # UK +longitude
-        ('KO01hr', 'leeeeeerrrrrrrrrrlllllll'),  
-        ('KO21pu', 'eeeeeerrrrrrrrrrllllllll'),
-        ('KN89vw', 'eeeeerrrrrrrrrrlllllllle'),  # Ukraine UR-0025
-    ):
-        r = ''.join([calc_shift(i[0], hr) for hr in range(24)])
-        print(i[0], r==i[1])
+##    for i in (
+##        ('PM85kh', 'rrrrrrrrrlllllllleeeeeer'),  # Japan
+##        ('DM07kp', 'rrlllllllleeeeeerrrrrrrr'),  # California     
+##        ('EM89hu', 'lllllllleeeeeerrrrrrrrrr'),  # Ohio
+##        ('IO91wm', 'lleeeeeerrrrrrrrrrllllll'),  # UK -longitude
+##        ('JO01ir', 'lleeeeeerrrrrrrrrrllllll'),  # UK +longitude
+##        ('KO01hr', 'leeeeeerrrrrrrrrrlllllll'),  
+##        ('KO21pu', 'eeeeeerrrrrrrrrrllllllll'),
+##        ('KN89vw', 'eeeeerrrrrrrrrrlllllllle'),  # Ukraine UR-0025
+##    ):
+##        r = ''.join([calc_shift(i[0], hr) for hr in range(24)])
+##        print(i[0], r==i[1])
+    settimefromgps(0)

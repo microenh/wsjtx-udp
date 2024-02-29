@@ -5,7 +5,8 @@ from threading import Thread, Lock
 from tkinter import Event
 
 from rx_msg import parse
-from event import manager, NotifyGUI
+from event import NotifyGUI
+from manager import manager
 from wsjtx_db import wsjtx_db
 from settings import settings
 from tx_msg import heartbeat
@@ -74,7 +75,7 @@ class Receive:
         pota.sort(key=lambda a: a.snr, reverse=True)
         call.sort(key=lambda a: a.snr, reverse=True)
         cq.sort(key=lambda a: a.snr, reverse=True)
-        manager.send(NotifyGUI.CALLS, (pota, call, cq))
+        manager.push(NotifyGUI.CALLS, (pota, call, cq))
         
     def client(self):
         r = []
@@ -89,11 +90,13 @@ class Receive:
             msg_id = d.msg_id
             match msg_id:
                 case 0:  # HEARTBEAT
+                    # print('heartbeat')
+                    manager.push(NotifyGUI.HB)
                     self.send(heartbeat())
-                    # print('heartbeat sent')
                 case 1:  # STATUS
+                    # print('status')
                     settings.update_status(d)
-                    manager.send(NotifyGUI.STATUS, d)
+                    manager.push(NotifyGUI.STATUS, d)
                     if not d.decoding:
                         # print('done decoding')
                         self.process_decodes(r)

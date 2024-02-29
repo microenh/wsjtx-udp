@@ -9,7 +9,7 @@ def main():
     
     receive.start()
     gps.start()
-    Gui(receive).start()
+    Gui().start(receive, gps)
     
     receive.stop()
     gps.stop()

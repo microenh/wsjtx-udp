@@ -6,36 +6,43 @@ from darkdetect import isDark
 from PIL import Image, ImageTk
 from settings import settings
 from tx_msg import reply, location, free_text, halt_tx
+from utility import settimefromgps
 
-from event import manager, NotifyGUI
+from event import NotifyGUI
+from manager import manager
 
 
-NOTIFY_GUI = '<<GUI>>'
 
 class Gui(tk.Tk):
     """Main class more"""
     LOGO = os.path.join(os.path.dirname(__file__), "Logo.png")
 
-    def __init__(self, receive):
+    def __init__(self):
         super().__init__()
-        self.receive = receive
         self.screenName = ':0.0'
         if os.environ.get('DISPLAY', '') == '':
             os.environ.__setitem__('DISPLAY', ':0.0')
         self.protocol('WM_DELETE_WINDOW', self.quit)
-        self.bind(NOTIFY_GUI, self.do_notify)
-        manager.event_generate = lambda: self.event_generate(NOTIFY_GUI, when="tail")
+        self.bind(n := '<<GUI>>', self.do_notify)
+        manager.event_generate = lambda: self.event_generate(n, when="tail")
 
         # self.after_idle(lambda: self.eval('tk::PlaceWindow . center'))
         self.last_decode = None
         self.setup_variables()
         self.setup_theme()
         self.layout()
+        self.time = ''
+        self.grid = ''
+        self.has_gps = False
+        self.update_time = False
 
     def setup_variables(self):
         self.rx_tx = tk.StringVar()
-        self.gps = tk.StringVar()
+        self.gps_text = tk.StringVar()
         self.update_rx_tx(False)
+        self.gps_button = tk.StringVar()
+        self.time_button = tk.StringVar()
+        self.park = tk.StringVar()
     
     def setup_theme(self):
         self.style = ttk.Style(self)
@@ -77,9 +84,30 @@ class Gui(tk.Tk):
 
         f = ttk.Frame(bg)
         f.pack(fill='x', pady=10)
-        ttk.Label(f, text="GPS").pack(side='left')
-        park = ttk.Label(f, textvariable=self.gps)
-        park.pack(fill='x', padx=(10,0))
+        ttk.Label(f, text="Park").pack(side='left')
+        ttk.Entry(f, textvariable=self.park).pack(fill='x', padx=(10,0))
+
+        f = ttk.Frame(bg)
+        f.pack(fill='x', pady=(0,10))
+        ttk.Label(f, text='GPS').pack(side='left')
+        ttk.Label(f, textvariable=self.gps_text).pack(side='left', fill='x', padx=(10,0))
+        self.time_button = ttk.Button(f, command=self.do_time_button)
+        self.time_button.pack(side='right')
+        self.grid_button = ttk.Button(f, command=self.do_grid_button)
+        self.grid_button.pack(side='right', padx=(0,10))
+
+    def do_grid_button(self):
+        if not self.has_gps:
+            self.gps.start()
+            return
+        if self.grid > '':
+            self.receive.send(location(self.grid))
+            self.gps_text.set(f'GRID set to {self.grid}')
+            
+
+    def do_time_button(self):
+        if self.time > '':
+            self.update_time = True
 
 
     def abort_tx(self, _):
@@ -110,19 +138,56 @@ class Gui(tk.Tk):
 
     def do_notify(self, _):
         while True:
-            data = manager.get_data()
+            data = manager.pop()
             if data is None:
                 break
             id_, d = data
             match id_:
                 case NotifyGUI.QUIT:
                     self.quit()
+                case NotifyGUI.HB:
+                    pass
                 case NotifyGUI.CALLS:
                     self.update_calls(d)
                 case NotifyGUI.STATUS:
                     self.update_rx_tx(d.transmitting, d.tx_msg)
+                case NotifyGUI.GPS_OPEN:
+                    self.has_gps = True
+                    self.time = ''
+                    self.grid = ''
+                    self.update_gps_buttons()
+                case NotifyGUI.GPS_CLOSE:
+                    self.gps_text.set('No GPS')
+                    self.has_gps = False
+                    self.time = ''
+                    self.grid = ''
+                    self.update_gps_buttons()
                 case NotifyGUI.GPGGA:
-                    self.gps.set(f"TIME: {d['time']} GRID: {d['grid']} FIX: {d['fix']} SATS: {d['sats']}")
+                    do_update = self.update_time
+                    self.update_time = False
+                    self.grid = d['grid']
+                    self.time = d['time']
+                    if do_update and self.time > '':
+                        self.gps_text.set('Time updated')
+                        settimefromgps(d['utctime'])
+                    else:
+                        self.set_gps_text()
+                    self.update_gps_buttons()
+                    
+
+    def set_gps_text(self):
+        t = a if (a:=self.time) > '' else 'N/A'
+        g = a if (a:=self.grid) > '' else 'N/A'
+        self.gps_text.set(f'GRID: {g}      TIME: {t}')
+        
+
+    def update_gps_buttons(self):
+        if self.has_gps:
+            self.time_button.configure(text = 'TIME', state='normal' if (self.time > '') else 'disabled')
+            self.grid_button.configure(text = 'GRID', state='normal' if (self.grid > '') else 'disabled')                           
+        else:
+            self.time_button.configure(text = '', state='disabled')
+            self.grid_button.configure(text = 'GPS')
             
 
     def update_rx_tx(self, tx, msg=''):
@@ -165,12 +230,14 @@ class Gui(tk.Tk):
             self.style.theme_use("forest-" + ("dark" if cur_dark else "light"))
         self.after(10, self.check_dark)
 
-    def start(self):
+    def start(self, receive, gps):
+        self.receive = receive
+        self.gps = gps
         self.mainloop()
         manager.running = False
         self.destroy()
 
 if __name__ == '__main__':
-    Gui().start(None)
+    Gui().start(None, None)
 ##    from main import main
 ##    main()
