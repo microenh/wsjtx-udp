@@ -1,11 +1,26 @@
 from serial_base import SerialBase
-from utility import grid_square, timefromgps, todec
+from utility import grid_square, timefromgps, todec, settimefromgps
+
 from event import NotifyGUI
 from settings import settings
+from tx_msg import location
 
 class GPS(SerialBase):
     def __init__(self):
         super().__init__(settings.GPS_PORT, 9600)
+        self.day = ''
+        self.message = ''
+        self.grid = None
+        self.update_time_request = False
+
+    def update_time(self):
+        self.update_time_request = True
+
+    def update_grid(self, grid, receive):
+        if grid is not None:
+            receive.send(location(grid))
+            self.message = f'grid set to {grid}'
+        
 
     def report_serial_open(self):
         # print('open')
@@ -18,25 +33,22 @@ class GPS(SerialBase):
     def process(self, data):
         a = data.strip().split(',')
         match a[0]:
-            case '$GPGGA':
-                if (t := a[1]) > '':
-                    time = timefromgps(t).__str__()
+            case '$GPRMC':
+                _, utc, _, la, la_dir, lo, lo_dir, _, _, dt = a[:10]
+                tm = timefromgps(utc)
+                lat = todec(la, la_dir)
+                lon = todec(lo, lo_dir)
+                grid = grid_square(lon,lat)
+                if grid is not None:
+                    grid = grid[:6]
+                if self.update_time_request:
+                    self.update_time_request = False
+                    self.message = settimefromgps(dt, tm)
+                if self.message > '':
+                    self.push(NotifyGUI.GPS_MSG, self.message)
+                    self.message = ''
                 else:
-                    time = ''
-                if (la := a[2]) > '':
-                    lat = todec(la, a[3])
-                    lon = todec(a[4],a[5])
-                    grid = grid_square(lon, lat)[:6]
-                else:
-                    grid = ''
-##                fix = int(a[6])
-##                sats = int(a[7])
-                self.push(NotifyGUI.GPGGA, {'time': time,
-                                            'grid': grid,
-                                            'utctime': t,
-##                                            'fix':  fix,
-##                                            'sats': sats
-                                            })
+                    self.push(NotifyGUI.GPRMC, {'time': tm, 'grid': grid}) 
 
 if __name__ == '__main__':
     from main import main

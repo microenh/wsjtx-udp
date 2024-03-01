@@ -10,5 +10,6 @@ class NotifyGUI(Enum):
     
     GPS_OPEN=auto()
     GPS_CLOSE=auto()
-    GPGGA = auto()
+    GPS_MSG=auto()
+    GPRMC=auto()
 

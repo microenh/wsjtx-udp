@@ -1,4 +1,4 @@
-from datetime import datetime, time, timezone
+from datetime import date
 from win32api import SetSystemTime
 
 DIVISIONS = (
@@ -15,21 +15,22 @@ def grid_square(lon, lat):
     lat: decimal latitude -90 .. 90 (South is negative)
     returns 10 character string 'AA99aa99AA' (truncate for less precision)
     """
-    lat += 90
-    lon += 180
-    lon_div = 20.0
-    lat_div = 10.0
+    if lat is not None and lon is not None:
+        lat += 90
+        lon += 180
+        lon_div = 20.0
+        lat_div = 10.0
 
-    results = []
-    for div, base in DIVISIONS:
-        lon_div /= div
-        lat_div /= div
-        results.append(chr((lo := int(lon / lon_div)) + base)
-                     + chr((la := int(lat / lat_div)) + base))
-        lon -= lo * lon_div
-        lat -= la * lat_div
-        
-    return ''.join(results)
+        results = []
+        for div, base in DIVISIONS:
+            lon_div /= div
+            lat_div /= div
+            results.append(chr((lo := int(lon / lon_div)) + base)
+                         + chr((la := int(lat / lat_div)) + base))
+            lon -= lo * lon_div
+            lat -= la * lat_div
+            
+        return ''.join(results)
 
 def lon_lat(grid_square):
     """
@@ -50,67 +51,64 @@ def lon_lat(grid_square):
     return lon, lat
 
 def timefromgps(utctime):
-    try:
-        utctime = float(utctime)
-    except ValueError:
-        utctime = 0.0
-    h = int(utctime//10_000)
-    utctime -= h * 10_000
-    m = int(utctime//100)
-    utctime -= m * 100
-    s = int(utctime + 0.5)
-    return time(h,m,s,0)
+    if utctime > '':
+        h = int(utctime[:2])
+        m = int(utctime[2:4])
+        s = int(utctime[4:6])
+        return (h,m,s)
 
 def todec(x,h):
-    try:
-        x = float(x)
-    except ValueError:
-        x = 0
-    d = int(x//100)
-    x -= d * 100
-    r = d + x / 60.0
-    return r if h in 'NE' else -r
+    if x > '':
+        r = float(x[:(a:=-8)]) + (float(x[a:]) / 60.0)
+        return r if h in 'NE' else -r
 
-_last_grid_square = None
-_last_hour = None
-_last_shift = ''
-
-def calc_shift(grid_square, hour):
+def calc_shift(gs, h):
     """
     'e': early shift
     'l': late shift
     'r': regular shift
-    grid_sqaure: at least 'AA99'
-    msec: msec after midnight UTC
+    gs: grid_sqaure at least 'AA99'
+    h: hour after midnight UTC
     """
-    global _last_grid_square, _last_hour, _last_shift
-    if grid_square == _last_grid_square and hour == _last_hour:
-        return _last_shift
-    _last_hour = hour
-    _last_grid_square = grid_square
-    lon, _ = lon_lat(grid_square)
+    a = calc_shift  # reference function 'static' variables
+    try:
+        if gs == a.gs and h == a.h:
+            return a.s
+    except AttributeError:
+        pass
+    a.h = h
+    a.gs = gs
+    lon, _ = lon_lat(gs)
     adj = int(round(lon / 15))
-    hour += adj - 2
-    hour %= 24
-    if hour < 6:
-        _last_grid_square = 'e'
-    elif hour < 16:
-        _last_grid_square = 'r'
+    h = (h + adj - 2) % 24
+    if h < 6:
+        a.s = 'e'
+    elif h < 16:
+        a.s = 'r'
     else:
-        _last_grid_square = 'l'
-    return _last_grid_square
+        a.s = 'l'
+    # print(a.s)
+    return a.s
 
-def settimefromgps(utctime):
-    utctime = float(utctime)
-    h = int(utctime//10_000)
-    utctime -= h * 10_000
-    m = int(utctime//100)
-    utctime -= m * 100
-    s = int(utctime)
-    utctime -= s
-    msec = int(utctime * 1_000)
-    d = datetime.now(timezone.utc)
-    SetSystemTime(d.year, d.month, d.weekday(), d.day, h, m, s, msec)
+
+
+def settimefromgps(day, time):
+    if day > '' and time is not None:
+        """
+        day: ddmmyy
+        time: hhmmss.ss
+        """
+        d = int(day[:2])
+        mon = int(day[2:4])
+        y = int(day[4:]) + 2000
+        h,m,s = time
+        dt = date(y,mon,d)
+        # print(y, mon, dt.weekday(), d, h, m, s, 0)
+        try:
+            SetSystemTime(y, mon, dt.weekday(), d, h, m, s, 0)
+            return 'Time set'
+        except Exception as e:
+            return e.strerror
 
 
 if __name__ == '__main__':

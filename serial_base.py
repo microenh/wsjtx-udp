@@ -7,7 +7,7 @@ class SerialBase:
     def __init__(self, port, baud, expected=LF):
         self.ser = Serial(None,
                           baud,
-                          timeout=1.0,
+                          timeout=2.0,
                           write_timeout=1.0)
         self.expected = expected
         self.ser.port = port
@@ -47,9 +47,11 @@ class SerialBase:
             if not self.ser.is_open:
                 break
             try:
-                data = self.ser.read_until(self.expected)[:-1].decode('utf-8')
-                if len(data) == 0:
+                data = self.ser.read_until(self.expected)
+                if data[-1:] != self.expected:
+                    print('runt')
                     continue
+                data = data.decode('utf-8')
                 self.process(data)
             except SerialException:
                 self.ser.close()

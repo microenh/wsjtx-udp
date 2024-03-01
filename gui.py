@@ -5,12 +5,10 @@ from tkinter import scrolledtext, ttk
 from darkdetect import isDark
 from PIL import Image, ImageTk
 from settings import settings
-from tx_msg import reply, location, free_text, halt_tx
-from utility import settimefromgps
+from tx_msg import reply, free_text, halt_tx
 
 from event import NotifyGUI
 from manager import manager
-
 
 
 class Gui(tk.Tk):
@@ -31,10 +29,8 @@ class Gui(tk.Tk):
         self.setup_variables()
         self.setup_theme()
         self.layout()
-        self.time = ''
-        self.grid = ''
+        self.grid = None
         self.has_gps = False
-        self.update_time = False
 
     def setup_variables(self):
         self.rx_tx = tk.StringVar()
@@ -99,15 +95,12 @@ class Gui(tk.Tk):
     def do_grid_button(self):
         if not self.has_gps:
             self.gps.start()
-            return
-        if self.grid > '':
-            self.receive.send(location(self.grid))
-            self.gps_text.set(f'GRID set to {self.grid}')
+        else:
+            self.gps.update_grid(self.grid, self.receive)
             
 
     def do_time_button(self):
-        if self.time > '':
-            self.update_time = True
+        self.gps.update_time()
 
 
     def abort_tx(self, _):
@@ -153,38 +146,26 @@ class Gui(tk.Tk):
                     self.update_rx_tx(d.transmitting, d.tx_msg)
                 case NotifyGUI.GPS_OPEN:
                     self.has_gps = True
-                    self.time = ''
-                    self.grid = ''
                     self.update_gps_buttons()
                 case NotifyGUI.GPS_CLOSE:
                     self.gps_text.set('No GPS')
                     self.has_gps = False
-                    self.time = ''
-                    self.grid = ''
                     self.update_gps_buttons()
-                case NotifyGUI.GPGGA:
-                    do_update = self.update_time
+                case NotifyGUI.GPS_MSG:
+                    self.gps_text.set(d)
+                case NotifyGUI.GPRMC:
                     self.update_time = False
-                    self.grid = d['grid']
-                    self.time = d['time']
-                    if do_update and self.time > '':
-                        self.gps_text.set('Time updated')
-                        settimefromgps(d['utctime'])
-                    else:
-                        self.set_gps_text()
-                    self.update_gps_buttons()
+                    g = 'N/A' if (dg := d['grid']) is None else dg
+                    self.grid = dg
+                    t = 'N/A' if (tg := d['time']) is None else '%02d:%02d:%02d' % tg
+                    self.gps_text.set(f'GRID: {g}      TIME: {t}')
+                    self.update_gps_buttons(self.grid, tg)
                     
 
-    def set_gps_text(self):
-        t = a if (a:=self.time) > '' else 'N/A'
-        g = a if (a:=self.grid) > '' else 'N/A'
-        self.gps_text.set(f'GRID: {g}      TIME: {t}')
-        
-
-    def update_gps_buttons(self):
+    def update_gps_buttons(self, grid=None, time=None):
         if self.has_gps:
-            self.time_button.configure(text = 'TIME', state='normal' if (self.time > '') else 'disabled')
-            self.grid_button.configure(text = 'GRID', state='normal' if (self.grid > '') else 'disabled')                           
+            self.time_button.configure(text = 'TIME', state='disabled' if time is None else 'normal')
+            self.grid_button.configure(text = 'GRID', state='disabled' if grid is None else 'normal')                           
         else:
             self.time_button.configure(text = '', state='disabled')
             self.grid_button.configure(text = 'GPS')
