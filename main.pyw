@@ -1,4 +1,4 @@
-#! .venv\scripts\pythonw.exe
+#!  /home/pi/Developer/wsjtx-udp/.venv/bin/python
 from gui import Gui
 from receive import Receive
 from gps import GPS

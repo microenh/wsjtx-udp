@@ -2,7 +2,8 @@ from datetime import datetime, timezone
 from utility import calc_shift
 
 class Settings:
-    GPS_PORT = 'COM5'
+    # GPS_PORT = 'COM5'
+    GPS_PORT = '/dev/ttyACM0'
     WSJTX_PORT = 2237
     HOST = '224.0.0.1'    
     CAPTURE_DATA = None  # set to None (no capture) or filename

@@ -1,5 +1,12 @@
-from datetime import date
-from win32api import SetSystemTime
+from sys import platform
+from datetime import date, datetime
+
+if platform == 'linux':
+    import time
+
+
+if platform == 'win32':
+    from win32api import SetSystemTime
 
 DIVISIONS = (
     ( 1, ord('A')),
@@ -92,7 +99,7 @@ def calc_shift(gs, h):
 
 
 
-def settimefromgps(day, time):
+def settimefromgps(day, t):
     if day > '' and time is not None:
         """
         day: ddmmyy
@@ -101,14 +108,22 @@ def settimefromgps(day, time):
         d = int(day[:2])
         mon = int(day[2:4])
         y = int(day[4:]) + 2000
-        h,m,s = time
-        dt = date(y,mon,d)
+        h,m,s = t
         # print(y, mon, dt.weekday(), d, h, m, s, 0)
-        try:
-            SetSystemTime(y, mon, dt.weekday(), d, h, m, s, 0)
-            return 'Time set'
-        except Exception as e:
-            return e.strerror
+        if platform == 'win32':
+            dt = date(y,mon,d)
+            try:
+                SetSystemTime(y, mon, dt.weekday(), d, h, m, s, 0)
+                return 'Time set'
+            except Exception as e:
+                return e.strerror
+        if platform == 'linux':
+            try:
+                dt = datetime(y, mon, d, h, m, s)
+                time.clock_settime(time.CLOCK_REALTIME, dt.timestamp())
+                return 'Time set'
+            except Exception as e:
+                return e.strerror
 
 
 if __name__ == '__main__':
