@@ -8,8 +8,8 @@ from utility import lon_lat
 from settings import settings
 from rx_msg import to_datetime
 
-DBN = os.path.join(df:=data_folder(), settings.DB_NAME)
-ADIFN = os.path.join(df, settings.ADI_NAME)
+DBN = os.path.join(df:=data_folder(), settings.db_name)
+ADIFN = os.path.join(df, settings.adi_name)
 
 
 class WSJTXDB:

@@ -13,20 +13,22 @@ from tx_msg import heartbeat
 
 class Receive:
     def __init__(self):
-        if settings.CAPTURE_DATA is not None:
-            self.data_out = open(settings.CAPTURE_DATA, 'w')
+        if settings.capture_data is not None:
+            self.data_out = open(settings.capture_data, 'w')
+        else:
+            self.data_out = None
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.settimeout(1.0)
         self.thread = Thread(target=self.client)
         self.addr = None
-        host = settings.HOST
-        if int(settings.HOST.split('.')[0]) in range(224,240):
+        host = settings.host
+        if int(settings.host.split('.')[0]) in range(224,240):
             # multicast
-            mreq = struct.pack("4sl", socket.inet_aton(settings.HOST), socket.INADDR_ANY)
+            mreq = struct.pack("4sl", socket.inet_aton(settings.host), socket.INADDR_ANY)
             self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
             host = ''
-        self.sock.bind((host, settings.WSJTX_PORT))
+        self.sock.bind((host, settings.wsjt_port))
 
 
     def start(self):
@@ -40,7 +42,7 @@ class Receive:
         
     def stop(self):
         self.thread.join()
-        if settings.CAPTURE_DATA is not None:
+        if self.data_out is not None:
             self.data_out.close()
 
     def process_decodes(self, decodes):

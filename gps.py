@@ -7,7 +7,7 @@ from tx_msg import location
 
 class GPS(SerialBase):
     def __init__(self):
-        super().__init__(settings.GPS_PORT, 9600)
+        super().__init__(settings.gps_port, 9600)
         self.day = ''
         self.message = ''
         self.grid = None

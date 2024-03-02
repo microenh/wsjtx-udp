@@ -1,17 +1,22 @@
+from sys import platform
 from datetime import datetime, timezone
 from utility import calc_shift
 
+
 class Settings:
-    # GPS_PORT = 'COM5'
-    GPS_PORT = '/dev/ttyACM0'
-    WSJTX_PORT = 2237
-    HOST = '224.0.0.1'    
-    CAPTURE_DATA = None  # set to None (no capture) or filename
-    DB_NAME = 'wsjtxDB.sqlite'
-    ADI_NAME = 'wsjtx.adi'
-    PARK = ''
     
     def __init__(self):
+        self.platform = platform
+        if self.platform == 'win32':
+            self.gps_port = 'COM5'
+        else:
+            self.gps_port = '/dev/ttyACM0'
+        self.wsjt_port = 2237
+        self.host = '224.0.0.1'    
+        self.capture_data = None  # set to None (no capture) or filename
+        self.db_name = 'wsjtxDB.sqlite'
+        self.adi_name = 'wsjtx.adi'
+        self.park = ''
         self.mode = None
 
     def update_status(self, d):
@@ -26,7 +31,7 @@ class Settings:
 
     @property
     def activator(self):
-        return len(self.PARK) > 0
+        return len(self.park) > 0
         
           
 settings = Settings()
