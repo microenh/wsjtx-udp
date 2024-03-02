@@ -53,3 +53,12 @@ class GPS(SerialBase):
 if __name__ == '__main__':
     from main import main
     main()
+
+"""
+from gpsdclient import GPSDClient
+# or as python dicts (optionally convert time information to `datetime` objects)
+with GPSDClient() as client:
+    for result in client.dict_stream(convert_datetime=True, filter=["TPV"]):
+        print("Latitude: %s" % result.get("lat", "n/a"))
+        print("Longitude: %s" % result.get("lon", "n/a"))
+"""
