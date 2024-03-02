@@ -3,6 +3,7 @@ from gui import Gui
 from receive import Receive
 from gps import GPS
 
+
 def main():
     receive = Receive()
     gps = GPS()
