@@ -53,7 +53,7 @@ class SerialBase:
                     continue
                 data = data.decode('utf-8')
                 self.process(data)
-            except SerialException:
+            except (SerialException, TypeError):
                 self.ser.close()
                 self.report_serial_close()
                 break

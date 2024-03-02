@@ -1,10 +1,10 @@
 import os
 import tkinter as tk
 from tkinter import scrolledtext, ttk
-
-from darkdetect import isDark
-from PIL import Image, ImageTk
 from settings import settings
+
+from isdark import isDark
+from PIL import Image, ImageTk
 from tx_msg import reply, free_text, halt_tx
 
 from event import NotifyGUI
@@ -209,7 +209,7 @@ class Gui(tk.Tk):
         if cur_dark != self.last_dark:
             self.last_dark = cur_dark
             self.style.theme_use("forest-" + ("dark" if cur_dark else "light"))
-        self.after(10, self.check_dark)
+        self.after(4_000, self.check_dark)
 
     def start(self, receive, gps):
         self.receive = receive

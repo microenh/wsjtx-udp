@@ -84,7 +84,7 @@ class Receive:
         while manager.running:
             try:
                 data, self.addr = self.sock.recvfrom(1024)
-                if settings.CAPTURE_DATA is not None:
+                if self.data_out is not None:
                     print(f'{data},', file=self.data_out)
                 d = parse(data)
             except TimeoutError:
