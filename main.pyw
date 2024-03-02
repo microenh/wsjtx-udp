@@ -3,7 +3,7 @@ from gui import Gui
 from receive import Receive
 from gps import GPS
 
-# from Powerspec
+# from RPi 4
 
 def main():
     receive = Receive()
