@@ -1,4 +1,4 @@
-from sys import platform
+import os
 from datetime import datetime, timezone
 from utility import calc_shift
 
@@ -6,7 +6,14 @@ from utility import calc_shift
 class Settings:
     
     def __init__(self):
-        self.platform = platform
+        self.platform = ''
+        if os.name == 'nt':
+            self.platform = 'win32'
+        elif os.name == 'posix':
+            if 'rpi' in os.uname().release:
+                self.platform = 'rpi'
+            else:
+                self.platform = 'posix'
         if self.platform == 'win32':
             self.gps_port = 'COM5'
         else:

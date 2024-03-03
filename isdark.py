@@ -1,4 +1,5 @@
-import settings
+from settings import settings
+
 if settings.platform == 'win32':
     from darkdetect import isDark
 else:
