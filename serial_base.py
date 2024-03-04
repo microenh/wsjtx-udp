@@ -30,7 +30,6 @@ class SerialBase:
 
     def stop(self):
         self.ser.close()
-        self.running = False
         self.thread.join()
 
     def write(self, data):
@@ -49,7 +48,7 @@ class SerialBase:
             try:
                 data = self.ser.read_until(self.expected)
                 if data[-1:] != self.expected:
-                    print('runt')
+                    # print('runt')
                     continue
                 data = data.decode('utf-8')
                 self.process(data)

@@ -1,4 +1,3 @@
-#! C:\Users\mark\Developer\Python\wsjtx-udp\.venv\scripts\pythonw.exe
 import socket
 import struct
 from threading import Thread, Lock
@@ -23,10 +22,17 @@ class Receive:
         self.thread = Thread(target=self.client)
         self.addr = None
         host = settings.host
-        if int(settings.host.split('.')[0]) in range(224,240):
+        if int(host.split('.')[0]) in range(224,240):
             # multicast
-            mreq = struct.pack("4sl", socket.inet_aton(settings.host), socket.INADDR_ANY)
-            self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+##            mreq = struct.pack("4sl",
+##                               socket.inet_aton(settings.host),
+##                               socket.INADDR_ANY)
+            mreq = struct.pack("4sii",
+                               socket.inet_aton(host),
+                               socket.INADDR_ANY, 0)
+            self.sock.setsockopt(socket.IPPROTO_IP,
+                                 socket.IP_ADD_MEMBERSHIP,
+                                 mreq)
             host = ''
         self.sock.bind((host, settings.wsjt_port))
 
