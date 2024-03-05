@@ -1,0 +1,99 @@
+from udp_server_base import UDPServerBase
+
+from rx_msg import parse
+from event import NotifyGUI
+from wsjtx_db import wsjtx_db
+from settings import settings
+from tx_msg import heartbeat
+
+from utility import timestamp
+
+class WSJTX(UDPServerBase):
+    def __init__(self):
+        super().__init__(settings.host, settings.wsjt_port)
+        self.r = []
+        if settings.capture_data is not None:
+            self.data_out = open(settings.capture_data, 'w')
+        else:
+            self.data_out = None
+        
+    def stop(self):
+        if self.data_out is not None:
+            self.data_out.close()
+        super().stop()
+
+    def report_open(self):
+        # print('open')
+        self.push(NotifyGUI.WSJTX_OPEN)        
+
+    def report_close(self):
+        # print('close')
+        self.push(NotifyGUI.WSJTX_CLOSE)        
+
+
+    def process_decodes(self):
+        if len(self.r) == 0:
+            return
+        pota = []
+        cq = []
+        call = []
+        for i in self.r:
+            dx_call = None
+            msg_parse = i.message.split(' ')
+            if msg_parse[0] == 'CQ':
+                if msg_parse[1] == 'POTA':
+                    dx_call = msg_parse[2]
+                    append = pota
+                else:
+                    dx_call = msg_parse[1]
+                    append = cq
+            elif msg_parse[0] == settings.de_call:
+                dx_call = msg_parse[0]
+                append = call
+            else:
+                # print(i.message, msg_parse)
+                continue
+            if dx_call is not None:    
+                if settings.activator:
+                    ex = wsjtx_db.exists_activator(dx_call, i)
+                else:
+                    ex = wsjtx_db.exists_hunter(dx_call, i)
+                # print(ex)
+                if ex[0] == 1:
+                    continue
+                append.append(i)                   
+        pota.sort(key=lambda a: a.snr, reverse=True)
+        call.sort(key=lambda a: a.snr, reverse=True)
+        cq.sort(key=lambda a: a.snr, reverse=True)
+        self.push(NotifyGUI.WSJTX_CALLS, (pota, call, cq))
+        
+    def process(self, data):
+        if self.data_out is not None:
+            print(f'{data},', file=self.data_out)
+        d = parse(data)
+        msg_id = d.msg_id
+        match msg_id:
+            case 0:  # HEARTBEAT
+                # print('heartbeat')
+                self.push(NotifyGUI.WSJTX_HB)
+                self.send(heartbeat())
+            case 1:  # STATUS
+                # print(f'{timestamp()} decoding: {d.decoding}')
+                settings.update_status(d)
+                self.push(NotifyGUI.WSJTX_STATUS, d)
+                if not d.decoding:
+                    self.process_decodes()
+                    self.r = []
+            case 2:  # DECODE
+                self.r.append(d)
+            case 5:  # LOG
+                wsjtx_db.add(d)
+            case 12:  # ADIF
+                wsjtx_db.add_log(d.text)
+                    
+
+
+if __name__ == '__main__':
+    from main import main
+    main()
+

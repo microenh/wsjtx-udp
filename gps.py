@@ -16,9 +16,9 @@ class GPS(SerialBase):
     def update_time(self):
         self.update_time_request = True
 
-    def update_grid(self, grid, receive):
+    def update_grid(self, grid, wsjtx):
         if grid is not None:
-            receive.send(location(grid))
+            wsjtx.send(location(grid))
             self.message = f'grid set to {grid}'
         
 
@@ -48,7 +48,7 @@ class GPS(SerialBase):
                     self.push(NotifyGUI.GPS_MSG, self.message)
                     self.message = ''
                 else:
-                    self.push(NotifyGUI.GPRMC, {'time': tm, 'grid': grid}) 
+                    self.push(NotifyGUI.GPS_DATA, {'time': tm, 'grid': grid}) 
 
 if __name__ == '__main__':
     from main import main

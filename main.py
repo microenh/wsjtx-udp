@@ -1,16 +1,21 @@
+from settings import settings
 from gui import Gui
-from receive import Receive
-from gps import GPS
+from wsjtx import WSJTX
+
+if settings.platform == 'win32':
+    from gps import GPS
+else:
+    from gps_udp import GPS
 
 def main():
-    receive = Receive()
+    wsjtx = WSJTX()
     gps = GPS()
     
-    receive.start()
+    wsjtx.start()
     gps.start()
-    Gui().start(receive, gps)
+    Gui().start(wsjtx, gps)
     
-    receive.stop()
+    wsjtx.stop()
     gps.stop()
     
         

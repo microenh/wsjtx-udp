@@ -1,5 +1,5 @@
 from sys import platform
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 
 if platform == 'linux':
     import time
@@ -7,6 +7,9 @@ if platform == 'linux':
 
 if platform == 'win32':
     from win32api import SetSystemTime
+
+def timestamp():
+    return datetime.now(timezone.utc).strftime('%M:%S')
 
 DIVISIONS = (
     ( 1, ord('A')),

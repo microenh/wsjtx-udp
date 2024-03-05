@@ -5,10 +5,12 @@ from settings import settings
 
 from isdark import isDark
 from PIL import Image, ImageTk
-from tx_msg import reply, free_text, halt_tx
+from tx_msg import reply, free_text, halt_tx, clear
 
 from event import NotifyGUI
 from manager import manager
+from utility import timestamp
+from datetime import datetime, timezone
 
 
 class Gui(tk.Tk):
@@ -96,7 +98,7 @@ class Gui(tk.Tk):
         if not self.has_gps:
             self.gps.start()
         else:
-            self.gps.update_grid(self.grid, self.receive)
+            self.gps.update_grid(self.grid, self.wsjtx)
             
 
     def do_time_button(self):
@@ -138,11 +140,11 @@ class Gui(tk.Tk):
             match id_:
                 case NotifyGUI.QUIT:
                     self.quit()
-                case NotifyGUI.HB:
+                case NotifyGUI.WSJTX_HB:
                     pass
-                case NotifyGUI.CALLS:
+                case NotifyGUI.WSJTX_CALLS:
                     self.update_calls(d)
-                case NotifyGUI.STATUS:
+                case NotifyGUI.WSJTX_STATUS:
                     self.update_rx_tx(d.transmitting, d.tx_msg)
                 case NotifyGUI.GPS_OPEN:
                     self.has_gps = True
@@ -153,7 +155,7 @@ class Gui(tk.Tk):
                     self.update_gps_buttons()
                 case NotifyGUI.GPS_MSG:
                     self.gps_text.set(d)
-                case NotifyGUI.GPRMC:
+                case NotifyGUI.GPS_DATA:
                     self.update_time = False
                     g = 'N/A' if (dg := d['grid']) is None else dg
                     self.grid = dg
@@ -189,6 +191,9 @@ class Gui(tk.Tk):
             return
         if chg := (a[0].time != self.last_decode):
             self.last_decode = a[0].time
+##        if (chg):
+##            print('new cycle')
+        self.last_decode = a[0].time
         for (d, e) in zip(d, (self.calls_pota, self.calls_me, self.calls_cq)):
             self.update_call_entry(d, e, chg)
 
@@ -211,8 +216,8 @@ class Gui(tk.Tk):
             self.style.theme_use("forest-" + ("dark" if cur_dark else "light"))
         self.after(4_000, self.check_dark)
 
-    def start(self, receive, gps):
-        self.receive = receive
+    def start(self, wsjtx, gps):
+        self.wsjtx = wsjtx
         self.gps = gps
         self.mainloop()
         manager.running = False

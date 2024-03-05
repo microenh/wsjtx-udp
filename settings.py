@@ -17,7 +17,8 @@ class Settings:
         if self.platform == 'win32':
             self.gps_port = 'COM5'
         else:
-            self.gps_port = '/dev/ttyACM0'
+            self.gps_port = 2947
+            self.gps_host = '127.0.0.1'
         self.wsjt_port = 2237
         self.host = '224.0.0.1'    
         self.capture_data = None  # set to None (no capture) or filename

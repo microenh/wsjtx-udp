@@ -9,6 +9,7 @@ from manager import manager
 from wsjtx_db import wsjtx_db
 from settings import settings
 from tx_msg import heartbeat
+from utility import timestamp
 
 class Receive:
     def __init__(self):
@@ -83,7 +84,7 @@ class Receive:
         pota.sort(key=lambda a: a.snr, reverse=True)
         call.sort(key=lambda a: a.snr, reverse=True)
         cq.sort(key=lambda a: a.snr, reverse=True)
-        manager.push(NotifyGUI.CALLS, (pota, call, cq))
+        manager.push(NotifyGUI.WSJTX_CALLS, (pota, call, cq))
         
     def client(self):
         r = []
@@ -99,12 +100,13 @@ class Receive:
             match msg_id:
                 case 0:  # HEARTBEAT
                     # print('heartbeat')
-                    manager.push(NotifyGUI.HB)
+                    manager.push(NotifyGUI.WSJTX_HB)
                     self.send(heartbeat())
                 case 1:  # STATUS
+                    print(f'{timestamp()} decode: {d.decoding}')
                     # print('status')
                     settings.update_status(d)
-                    manager.push(NotifyGUI.STATUS, d)
+                    manager.push(NotifyGUI.WSJTX_STATUS, d)
                     if not d.decoding:
                         # print('done decoding')
                         self.process_decodes(r)
