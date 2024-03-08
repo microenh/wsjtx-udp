@@ -1,3 +1,4 @@
-#! /home/pi/Developer/wsjtx-udp/.venv/bin/python
-from main import main
-main()
+#! .venv/bin/python
+from main import Main
+Main()
+

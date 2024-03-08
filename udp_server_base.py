@@ -4,12 +4,13 @@ from threading import Thread
 from manager import manager
 
 class UDPServerBase:
-    def __init__(self, host, port):
+    def __init__(self, address):
         self.addr = None
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.settimeout(1.0)
         self.thread = Thread(target=self.run)
+        host = address[0]
         if int(host.split('.')[0]) in range(224,240):
             mreq = pack("4sii",
                        socket.inet_aton(host),
@@ -18,7 +19,7 @@ class UDPServerBase:
                                  socket.IP_ADD_MEMBERSHIP,
                                  mreq)
             host = ''
-        self.sock.bind((host, port))
+        self.sock.bind(address)
 
     def start(self):
         self.thread.start()
@@ -34,7 +35,7 @@ class UDPServerBase:
         self.thread.join()
         
     def run(self):
-        self.report_open()
+        self.report(True)
         while manager.running:
             try:
                 data, self.addr = self.sock.recvfrom(1024)
@@ -44,5 +45,5 @@ class UDPServerBase:
             except TimeoutError:
                 # print('timeout')
                 continue
-        self.report_close()
+        self.report(False)
 

@@ -8,28 +8,22 @@ from tx_msg import heartbeat
 
 from utility import timestamp
 
+# file to save WJST-X data or None
+CAPTURE_DATA = None
+
 class WSJTX(UDPServerBase):
     def __init__(self):
-        super().__init__(settings.host, settings.wsjt_port)
+        super().__init__(settings.wsjtx_address)
         self.r = []
-        if settings.capture_data is not None:
-            self.data_out = open(settings.capture_data, 'w')
-        else:
-            self.data_out = None
+        self.data_out = None if CAPTURE_DATA is None else open(CAPTURE_DATA, 'w')
         
     def stop(self):
         if self.data_out is not None:
             self.data_out.close()
         super().stop()
 
-    def report_open(self):
-        # print('open')
-        self.push(NotifyGUI.WSJTX_OPEN)        
-
-    def report_close(self):
-        # print('close')
-        self.push(NotifyGUI.WSJTX_CLOSE)        
-
+    def report(self, open_):
+        self.push(NotifyGUI.WSJTX_OPEN if open_ else NotifyGUI.WSJTX_CLOSE)        
 
     def process_decodes(self):
         if len(self.r) == 0:
@@ -48,20 +42,14 @@ class WSJTX(UDPServerBase):
                     dx_call = msg_parse[1]
                     append = cq
             elif msg_parse[0] == settings.de_call:
-                dx_call = msg_parse[0]
+                dx_call = msg_parse[1]
                 append = call
             else:
                 # print(i.message, msg_parse)
                 continue
             if dx_call is not None:    
-                if settings.activator:
-                    ex = wsjtx_db.exists_activator(dx_call, i)
-                else:
-                    ex = wsjtx_db.exists_hunter(dx_call, i)
-                # print(ex)
-                if ex[0] == 1:
-                    continue
-                append.append(i)                   
+                if wsjtx_db.exists(dx_call, i) is None:
+                    append.append(i)                   
         pota.sort(key=lambda a: a.snr, reverse=True)
         call.sort(key=lambda a: a.snr, reverse=True)
         cq.sort(key=lambda a: a.snr, reverse=True)

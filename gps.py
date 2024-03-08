@@ -8,7 +8,6 @@ from tx_msg import location
 class GPS(SerialBase):
     def __init__(self):
         super().__init__(settings.gps_port, 9600)
-        self.day = ''
         self.message = ''
         self.grid = None
         self.update_time_request = False
@@ -21,17 +20,11 @@ class GPS(SerialBase):
             wsjtx.send(location(grid))
             self.message = f'grid set to {grid}'
         
-
-    def report_serial_open(self):
-        # print('open')
-        self.push(NotifyGUI.GPS_OPEN)        
-
-    def report_serial_close(self):
-        # print('close')
-        self.push(NotifyGUI.GPS_CLOSE)        
+    def report(self, is_open):
+        self.push(NotifyGUI.GPS_OPEN if is_open else NotifyGUI.GPS_CLOSE)        
 
     def process(self, data):
-        a = data.strip().split(',')
+        a = data.decode().strip().split(',')
         match a[0]:
             case '$GPRMC':
                 _, utc, _, la, la_dir, lo, lo_dir, _, _, dt = a[:10]

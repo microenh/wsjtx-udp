@@ -1,18 +1,13 @@
-"""store logged contacts"""
+"""store/query logged contacts"""
 import os
 import sqlite3
 from datetime import datetime, timezone
 
-from datafolder import data_folder
 from utility import lon_lat
 from settings import settings
 from rx_msg import to_datetime
 
-DBN = os.path.join(df:=data_folder(), settings.db_name)
-ADIFN = os.path.join(df, settings.adi_name)
-
-
-class WSJTXDB:
+class WsjtxDb:
     def __init__(self):
         CREATE_TABLES = ("""
             create table if not exists qsos (
@@ -36,8 +31,8 @@ class WSJTXDB:
                 ordinal_on int,
                 band int,
                 park text,
-                shift text
-            );""",
+                shift text);
+            """,
             """
             create unique index if not exists activator on qsos (
                 dx_call,
@@ -56,11 +51,11 @@ class WSJTXDB:
             """,
         )
 
-        with sqlite3.connect(DBN) as con:
+        with sqlite3.connect(settings.dbn) as con:
             for i in CREATE_TABLES:
                 con.execute(i)
-
-    def exists_activator(self, dx_call, d):
+                
+    def exists(self, dx_call, d):
         QUERY = """select exists(
             select 1 from qsos
                 where dx_call=?
@@ -70,32 +65,15 @@ class WSJTXDB:
                 and park=?
                 and shift=?
             )"""
-        with sqlite3.connect(DBN) as con:
+        with sqlite3.connect(settings.dbn) as con:
             return con.execute(QUERY, (
                 dx_call,
                 d.mode,
                 settings.ordinal,
                 settings.band,
-                settings.park_name.get(),
+                settings.park,
                 settings.shift,
             )).fetchone()        
-
-    def exists_hunter(self, dx_call, d):
-        QUERY = """select exists(
-            select 1 from qsos
-                where dx_call=?
-                and mode=?
-                and ordinal_on=?
-                and band=?
-                and park=''
-            )"""
-        with sqlite3.connect(DBN) as con:
-            return con.execute(QUERY, (
-                dx_call,
-                settings.mode,
-                settings.ordinal,
-                settings.band,
-            )).fetchone()
 
     def add(self, d):
         QUERY = """insert or replace into qsos(
@@ -122,7 +100,7 @@ class WSJTXDB:
                 shift
         ) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"""
         
-        with sqlite3.connect(DBN) as con:
+        with sqlite3.connect(settings.dbn) as con:
             con.execute(QUERY, (
                 to_datetime(*d.time_off).timestamp(),
                 d.dx_call,
@@ -143,16 +121,16 @@ class WSJTXDB:
                 d.adif_md,
                 settings.ordinal,
                 settings.band,
-                settings.PARK,
+                settings.park,
                 settings.shift,
             ))
 
     def add_log(self, text):
-        exists = os.path.isfile(ADIFN)
-        with open(ADIFN, 'a') as f:
+        exists = os.path.isfile(settings.ADIFN)
+        with open(settings.adifn, 'a') as f:
             if exists:
                 text = text.split('<EOH>\n')[1]
             f.write(text)
         
-wsjtx_db = WSJTXDB()
+wsjtx_db = WsjtxDb()
 

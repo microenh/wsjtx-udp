@@ -12,7 +12,6 @@ class SerialBase:
         self.expected = expected
         self.ser.port = port
         self.thread = Thread()
-        self.thread.start()
 
     def start(self):
         if self.thread.is_alive():
@@ -21,41 +20,42 @@ class SerialBase:
             self.ser.open()
             self.thread = Thread(target=self.run)
             self.thread.start()
-            self.report_serial_open()
+            self.report(True)
         except SerialException:
-            self.report_serial_close()
+            self.report(False)
             
     def push(self, id_, data=None):
         manager.push(id_, data)
 
     def stop(self):
         self.ser.close()
-        self.thread.join()
+        if self.thread.is_alive():
+            self.thread.join()
 
-    def write(self, data):
+    def send(self, data):
         if self.ser.is_open:
             try:
                 with manager.lock:
                     self.ser.write(data)
             except SerialException:
                 self.ser.close()
-                self.report_serial_close()
 
     def run(self):
+        expected = self.expected
+        ser = self.ser
         while manager.running:
-            if not self.ser.is_open:
+            if not ser.is_open:
                 break
             try:
-                data = self.ser.read_until(self.expected)
-                if data[-1:] != self.expected:
+                data = ser.read_until(expected)
+                if data[-1:] != expected:
                     # print('runt')
                     continue
-                data = data.decode('utf-8')
                 self.process(data)
             except (SerialException, TypeError):
-                self.ser.close()
-                self.report_serial_close()
+                ser.close()
                 break
+        self.report(False)
 
 
 if __name__ == '__main__':
