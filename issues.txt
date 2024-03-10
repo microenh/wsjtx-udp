@@ -1,0 +1,11 @@
+wsjtx-udp issues
+
+Wayland screen position
+- always displays on monitor where launched
+- position is relative to top,left of monitor
+- works on X11
+
+X11 light/dark detection
+- seems to work on Wayland
+
+light/dark readjustment increased window size

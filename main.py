@@ -27,9 +27,9 @@ class Main(tk.Tk):
 
     def __init__(self):
         super().__init__()
-        self.screenName = ':0.0'
-        if os.environ.get('DISPLAY', '') == '':
-            os.environ.__setitem__('DISPLAY', ':0.0')
+##        self.screenName = ':0.0'
+##        if os.environ.get('DISPLAY', '') == '':
+##            os.environ.__setitem__('DISPLAY', ':0.0')
         self.protocol('WM_DELETE_WINDOW', self.quit)
         self.bind(n := '<<GUI>>', self.do_notify)
         manager.event_generate = lambda: self.event_generate(n, when="tail")
@@ -108,8 +108,16 @@ class Main(tk.Tk):
         
         self.grid_button = ttk.Button(f, command=self.do_grid_button)
         self.grid_button.pack(side='right', padx=(0,10))
-        
-        self.geometry('+1940+40')
+
+        x = int(settings.config['default']['main_x'])
+        y = int(settings.config['default']['main_y'])
+        max_x = self.winfo_screenwidth()
+        max_y = self.winfo_screenheight()
+        if x > max_x:
+            x = 20
+        if y > max_y:
+            y = 20
+        self.geometry(f'+{x}+{y}')
 
     def do_grid_button(self):
         if not self.has_gps:
@@ -249,6 +257,8 @@ class Main(tk.Tk):
         manager.running = False
         if self.after_task is not None:
             self.after_cancel(self.after_task)
+        settings.config['default']['main_x'] = str(self.winfo_x())
+        settings.config['default']['main_y'] = str(self.winfo_y())
         self.destroy()
         self.wsjtx.stop()
         self.gps.stop()

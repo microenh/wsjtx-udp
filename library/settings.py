@@ -56,6 +56,8 @@ class Settings:
         self.config['default'] = {
             'wsjtx_host': '127.0.0.1',
             'wsjtx_port': '2237',
+            'main_x': '20',
+            'main_y': '20'
         }
         self.config['rpi'] = {
             'gps_host': '127.0.0.1',
