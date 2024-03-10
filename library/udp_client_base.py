@@ -1,7 +1,7 @@
 import socket
 from struct import pack
 from threading import Thread
-from manager import manager
+from library.manager import manager
 
 class UDPClientBase:
     def __init__(self, address):

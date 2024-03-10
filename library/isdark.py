@@ -1,4 +1,4 @@
-from settings import settings
+from library.settings import settings
 
 if settings.platform == 'win32':
     from darkdetect import isDark
@@ -10,4 +10,5 @@ else:
             ['gsettings', 'get', 'org.gnome.desktop.interface', 'gtk-theme'],
             capture_output=True)
         stdout = out.stdout.decode()
+        # print(stdout)
         return 'noir' in stdout

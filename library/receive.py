@@ -3,13 +3,13 @@ import struct
 from threading import Thread, Lock
 from tkinter import Event
 
-from rx_msg import parse
-from event import NotifyGUI
-from manager import manager
-from wsjtx_db import wsjtx_db
-from settings import settings
-from tx_msg import heartbeat
-from utility import timestamp
+from library.rx_msg import parse
+from library.event import NotifyGUI
+from library.manager import manager
+from library.wsjtx_db import wsjtx_db
+from library.settings import settings
+from library.tx_msg import heartbeat
+from library.utility import timestamp
 
 class Receive:
     def __init__(self):
@@ -22,7 +22,7 @@ class Receive:
         self.sock.settimeout(1.0)
         self.thread = Thread(target=self.client)
         self.addr = None
-        host = settings.host
+        host = settings.config.wsjtx_host
         if int(host.split('.')[0]) in range(224,240):
             # multicast
 ##            mreq = struct.pack("4sl",

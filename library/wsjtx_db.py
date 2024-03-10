@@ -3,9 +3,9 @@ import os
 import sqlite3
 from datetime import datetime, timezone
 
-from utility import lon_lat
-from settings import settings
-from rx_msg import to_datetime
+from library.utility import lon_lat
+from library.settings import settings
+from library.rx_msg import to_datetime
 
 class WsjtxDb:
     def __init__(self):

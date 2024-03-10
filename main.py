@@ -1,23 +1,23 @@
 import os
 import tkinter as tk
 from tkinter import scrolledtext, ttk
-from settings import settings
+from library.settings import settings
 
-from isdark import isDark
+from library.isdark import isDark
 from PIL import Image, ImageTk
-from tx_msg import reply, free_text, halt_tx, clear
+from library.tx_msg import reply, free_text, halt_tx, clear
 
-from event import NotifyGUI
-from manager import manager
-from utility import timestamp
+from library.event import NotifyGUI
+from library.manager import manager
+from library.utility import timestamp
 from datetime import datetime, timezone
 
-from wsjtx import WSJTX
+from library.wsjtx import WSJTX
 
 if settings.platform == 'win32':
-    from gps import GPS
+    from library.gps import GPS
 else:
-    from gps_udp import GPS
+    from library.gps_udp import GPS
 
 
 
@@ -56,8 +56,8 @@ class Main(tk.Tk):
         self.style = ttk.Style(self)
         self.last_dark = None
         # Import the tcl files
-        self.tk.call('source', 'forest-dark.tcl')
-        self.tk.call('source', 'forest-light.tcl')
+        self.tk.call('source', 'forest-theme/forest-dark.tcl')
+        self.tk.call('source', 'forest-theme/forest-light.tcl')
         # Set the theme with the theme to match the system theme
         self.after_task = self.check_dark()
 
@@ -236,6 +236,7 @@ class Main(tk.Tk):
             self.style.theme_use("forest-" + ("dark" if cur_dark else "light"))
         self.after_task = self.after(4_000, self.check_dark)
 
+
     def start_others(self):
         self.gps.start()
         self.wsjtx.start()
@@ -251,6 +252,7 @@ class Main(tk.Tk):
         self.destroy()
         self.wsjtx.stop()
         self.gps.stop()
+        settings.save()
 
 if __name__ == '__main__':
     Main()

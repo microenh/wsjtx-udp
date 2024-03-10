@@ -1,9 +1,9 @@
-from serial_base import SerialBase
-from utility import grid_square, timefromgps, todec, settimefromgps
+from library.serial_base import SerialBase
+from library.utility import grid_square, timefromgps, todec, settimefromgps
 
-from event import NotifyGUI
-from settings import settings
-from tx_msg import location
+from library.event import NotifyGUI
+from library.settings import settings
+from library.tx_msg import location
 
 class GPS(SerialBase):
     def __init__(self):

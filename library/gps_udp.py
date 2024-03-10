@@ -1,10 +1,10 @@
-from udp_client_base import UDPClientBase
-
-from event import NotifyGUI
-from settings import settings
 from json import loads, JSONDecodeError
-from utility import grid_square
-from tx_msg import location
+
+from library.udp_client_base import UDPClientBase
+from library.event import NotifyGUI
+from library.settings import settings
+from library.utility import grid_square
+from library.tx_msg import location
 
 class GPS(UDPClientBase):
     def __init__(self):

@@ -1,7 +1,7 @@
 from threading import Thread
 from serial import Serial, SerialException, PortNotOpenError, LF
 
-from manager import manager
+from library.manager import manager
 
 class SerialBase:
     def __init__(self, port, baud, expected=LF):
