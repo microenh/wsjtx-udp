@@ -21,7 +21,7 @@ else:
 
 
 
-class Main(tk.Tk):
+class Gui(tk.Tk):
     """Main class more"""
     LOGO = os.path.join(os.path.dirname(__file__), "Logo.png")
 
@@ -56,8 +56,8 @@ class Main(tk.Tk):
         self.style = ttk.Style(self)
         self.last_dark = None
         # Import the tcl files
-        self.tk.call('source', 'forest-theme/forest-dark.tcl')
-        self.tk.call('source', 'forest-theme/forest-light.tcl')
+        self.tk.call('source', 'library/forest-theme/forest-dark.tcl')
+        self.tk.call('source', 'library/forest-theme/forest-light.tcl')
         # Set the theme with the theme to match the system theme
         self.after_task = self.check_dark()
 
@@ -264,5 +264,5 @@ class Main(tk.Tk):
         self.gps.stop()
         settings.save()
 
-if __name__ == '__main__':
-    Main()
+def main():
+    Gui()

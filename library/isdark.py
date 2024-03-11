@@ -10,5 +10,5 @@ else:
             ['gsettings', 'get', 'org.gnome.desktop.interface', 'gtk-theme'],
             capture_output=True)
         stdout = out.stdout.decode()
-        print(stdout)
+        # print(stdout)
         return 'noir' in stdout
